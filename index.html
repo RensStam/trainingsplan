@@ -373,7 +373,7 @@ pre.sketch{overflow:auto;background:#eef2ef;padding:12px;border-radius:10px;font
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 5;
-const APP_VERSION = "block2-1.9.0";
+const APP_VERSION = "block2-1.9.1";
 const APP_BUILD = "2026-09-07";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -3136,6 +3136,7 @@ function renderGarmin(){
       ${garminFileHandle ? `<button class="btn" id="garminRefreshBtn">Garmin-data vernieuwen</button>` : ''}
       <input type="file" id="garminJsonInput" class="hidden" accept=".zip,.json,application/zip,application/json">
     </div>
+    <label class="small" style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" data-garmin-auto ${garminAutoCoachOn()?'checked':''}> <span>Nieuwe hardloop-activiteiten bij het inlezen <b>automatisch</b> als Coach-run overnemen (Garmin leidend, ook voor RPE). Heb je op die dag al een handmatige run, dan wordt die gekoppeld en niet verdubbeld.</span></label>
     <p class="tny muted" style="margin-top:6px" id="garminZipStatus"></p>
     <details class="acc" style="margin-top:8px"><summary>Details</summary><div class="acc-body">
       <p class="small">Je kunt hier direct de Garmin "Uw gegevens exporteren"-ZIP kiezen — de app leest die lokaal in de browser uit (de ZIP zelf wordt nergens geüpload). Het oudere pad via <code>garmin_export_to_summary.py</code> → <code>garmin_summary.json</code> (zie GARMIN_JSON_SPEC.md) werkt ook nog, bijvoorbeeld voor het testbestand. Handmatige invoer (RPE, pijn, energie, techniek) blijft altijd nodig.</p>
@@ -3849,6 +3850,7 @@ function garminCancelPreview(){ ui.garminPreview = null; renderGarmin(); }
 function garminCommitImport(){
   const pv = ui.garminPreview; if(!pv) return;
   const snap = structuredClone(state);
+  let autoMsg = '';
   try {
     const now = new Date().toISOString();
     const gen = pv.parsed.generatedAt;
@@ -3859,13 +3861,18 @@ function garminCommitImport(){
       if(d.weightKg!=null) g.weightKg = d.weightKg;   // handmatige waarde wint in de weergave (recoveryTimeline is first-wins)
       g._source = 'garmin'; g._syncedAt = now; if(gen) g._generatedAt = gen;
     }
+    const auto = { nieuw:0, gekoppeld:0 };
     for(const a of pv.parsed.activities){
       const ex = state.garmin.activities.find(x=> x.externalId === a.externalId);
       const rec = { ...a, _syncedAt: now, _generatedAt: gen || null };
       if(ex) Object.assign(ex, rec); else state.garmin.activities.push(rec);
+      // nieuwe hardloop-activiteit -> automatisch Coach-run (Garmin leidend); al bekende activiteiten krijgen dit niet
+      // opnieuw, zodat een door jou verwijderde Coach-run niet bij elke import terugkomt
+      if(!ex && garminAutoCoachOn() && GARMIN_RUN_TYPES.includes(a.type)){ const how = garminApplyRun(rec); if(auto[how]!=null) auto[how]++; }
       // RPE: het cijfer van Garmin is leidend voor gekoppelde Coach-runs (alleen dit veld wordt bijgewerkt)
       if(a.rpe != null) state.currentBlock.coachRuns.forEach(r=>{ if(r.garminExternalId === a.externalId) r.rpe = a.rpe; });
     }
+    if(auto.nieuw || auto.gekoppeld) autoMsg = 'Import klaar.'+'\n\n'+'Automatisch als Coach-run overgenomen (Garmin leidend): '+auto.nieuw+' nieuw, '+auto.gekoppeld+' gekoppeld aan een bestaande run.'+'\n\n'+'Wil je een run niet meetellen? Verwijder die Coach-run op Vandaag; bij een volgende import komt hij niet terug.';
     state.garmin.activities.sort((x,y)=> (x.startTime||x.date).localeCompare(y.startTime||y.date));
     state.garmin.meta = { fileName: pv.fileName || null, generatedAt: gen || null, source: pv.parsed.source || null, lastImportedAt: now };
     saveState();
@@ -3876,31 +3883,24 @@ function garminCommitImport(){
   }
   ui.garminPreview = null;
   renderCurrent();
+  if(autoMsg) alert(autoMsg);
 }
 
-/* Garmin-activiteit -> Coach-run (idempotent op garminExternalId; handmatige velden blijven) */
-function garminActivityToCoachRun(externalId){
-  const a = state.garmin.activities.find(x=> x.externalId === externalId); if(!a) return;
-  let r = CB.coachRuns.find(x=> x.garminExternalId === externalId);
-  // Staat er op dezelfde dag al een handmatige run (zonder Garmin-koppeling), of een run waarvan de koppeling
-  // naar een Garmin-activiteit op een ANDERE dag wijst (kapotte koppeling)? Dan die run koppelen i.p.v. een tweede aan te maken.
-  let adopt = null;
-  if(!r){
-    const near = x => x.date === a.date && (a.distanceKm == null || x.distanceKm == null || Math.abs(num(x.distanceKm) - a.distanceKm) <= 0.5);
-    adopt = CB.coachRuns.find(x=> !x.garminExternalId && near(x))
-         || CB.coachRuns.find(x=> { if(!x.garminExternalId || !near(x)) return false;
-              const la = state.garmin.activities.find(y=> y.externalId === x.garminExternalId); return la && la.date !== x.date; });
-  }
-  const intro = adopt
-    ? `Op ${fmt(a.date,{day:'numeric',month:'long'})} staat al een Coach-run (${adopt.distanceKm!=null?nl(adopt.distanceKm)+' km':'zonder afstand'}${adopt.rpe!=null?', RPE '+adopt.rpe:''}). Die wordt aan deze Garmin-run gekoppeld en bijgewerkt — er komt GEEN tweede run bij.
-
-`
-    : `Garmin-run van ${fmt(a.date,{day:'numeric',month:'long'})} als Coach-run gebruiken?
-
-`;
-  if(!confirm(intro + `Datum, duur, afstand, gem. bewogen tempo, HR en VO₂-max worden overgenomen. RPE komt uit Garmin (leidend, overschrijft een eigen cijfer).
-Pijn, opmerking, gepland/uitgevoerd en het Coach-trainingstype blijven handmatig.`)) return;
-  if(adopt){ r = adopt; r.garminExternalId = externalId; }
+function garminAutoCoachOn(){ return CB.garminAutoCoach !== false; }
+/* Garmin-activiteit -> Coach-run (idempotent op garminExternalId; handmatige velden blijven).
+   Zoekt eerst een bestaande run om te koppelen (zelfde dag, ±0,5 km, zonder koppeling of met kapotte koppeling). */
+function garminFindAdopt(a){
+  const near = x => x.date === a.date && (a.distanceKm == null || x.distanceKm == null || Math.abs(num(x.distanceKm) - a.distanceKm) <= 0.5);
+  return CB.coachRuns.find(x=> !x.garminExternalId && near(x))
+      || CB.coachRuns.find(x=> { if(!x.garminExternalId || !near(x)) return false;
+           const la = state.garmin.activities.find(y=> y.externalId === x.garminExternalId); return la && la.date !== x.date; })
+      || null;
+}
+/* zonder bevestiging: geeft 'nieuw' | 'gekoppeld' | 'bijgewerkt' terug. Garmin is leidend (ook voor RPE als Garmin er een heeft). */
+function garminApplyRun(a){
+  let r = CB.coachRuns.find(x=> x.garminExternalId === a.externalId);
+  let how = r ? 'bijgewerkt' : 'nieuw';
+  if(!r){ const adopt = garminFindAdopt(a); if(adopt){ r = adopt; r.garminExternalId = a.externalId; how = 'gekoppeld'; } }
   const g = {
     // avgPace = gemiddeld BEWOGEN tempo: door de Garmin-normalizer berekend uit
     // movingDuration ÷ afstand op volle precisie — niet uit de afgeronde weergavewaarden.
@@ -3910,7 +3910,7 @@ Pijn, opmerking, gepland/uitgevoerd en het Coach-trainingstype blijven handmatig
   };
   if(r){ Object.assign(r, g); r._source = 'garmin-sync'; }
   else {
-    r = { id:'c'+Date.now().toString(36), garminExternalId: externalId, planned:'', type:'',
+    r = { id:'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), garminExternalId: a.externalId, planned:'', type:'',
           rpe:null, pain:null, note:'', plannedContent:'', doneContent:'', _source:'garmin', ...g };
     CB.coachRuns.push(r);
   }
@@ -3918,6 +3918,17 @@ Pijn, opmerking, gepland/uitgevoerd en het Coach-trainingstype blijven handmatig
   if(a.rpe != null) r.rpe = a.rpe;
   CB.coachRuns.sort((x,y)=> x.date.localeCompare(y.date));
   const l = ensureLog(a.date); l.checks = l.checks || {}; l.checks.mainTraining = true;
+  return how;
+}
+function garminActivityToCoachRun(externalId){
+  const a = state.garmin.activities.find(x=> x.externalId === externalId); if(!a) return;
+  const linked = CB.coachRuns.find(x=> x.garminExternalId === externalId);
+  const adopt = linked ? null : garminFindAdopt(a);
+  const intro = adopt
+    ? `Op ${fmt(a.date,{day:'numeric',month:'long'})} staat al een Coach-run (${adopt.distanceKm!=null?nl(adopt.distanceKm)+' km':'zonder afstand'}${adopt.rpe!=null?', RPE '+adopt.rpe:''}). Die wordt aan deze Garmin-run gekoppeld en bijgewerkt — er komt GEEN tweede run bij.\n\n`
+    : `Garmin-run van ${fmt(a.date,{day:'numeric',month:'long'})} als Coach-run gebruiken?\n\n`;
+  if(!confirm(intro + `Datum, duur, afstand, gem. bewogen tempo, HR en VO₂-max worden overgenomen. RPE komt uit Garmin (leidend, overschrijft een eigen cijfer).\nPijn, opmerking, gepland/uitgevoerd en het Coach-trainingstype blijven handmatig.`)) return;
+  garminApplyRun(a);
   saveState(); renderCurrent();
 }
 
@@ -4080,6 +4091,7 @@ document.addEventListener('change', e=>{
     (l.checks = l.checks || {}).routine = true;
     saveState(); renderToday(); return;
   }
+  if(el.hasAttribute('data-garmin-auto')){ CB.garminAutoCoach = el.checked; saveState(); renderGarmin(); return; }
   if(el.dataset.check){
     const l = CB.dailyLogs[ui.date] = CB.dailyLogs[ui.date] || {};
     l.checks = l.checks || {}; l.checks[el.dataset.check] = el.checked;
