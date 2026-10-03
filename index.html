@@ -373,7 +373,7 @@ pre.sketch{overflow:auto;background:#eef2ef;padding:12px;border-radius:10px;font
    Opslag: localStorage. Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 5;
-const APP_VERSION = "block2-1.8.4";
+const APP_VERSION = "block2-1.8.5";
 const APP_BUILD = "2026-09-07";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -1507,7 +1507,7 @@ function renderToday(){
       </div></div></div>`;
   }
   html += `<div class="seg"><div class="lines">
-      <label><input type="checkbox" data-check="eveningWalk"${checks.eveningWalk?' checked':''}> Avondwandeling — optioneel, naar behoefte</label>
+      <label><input type="checkbox" data-check="eveningWalk"${checks.eveningWalk?' checked':''}> Wandeling — optioneel, naar behoefte</label>
       ${checks.eveningWalk ? `<div style="margin-top:6px;max-width:160px">${fInput('Duur (min)','currentBlock.dailyLogs.'+d+'.eveningWalkMin', l.eveningWalkMin,'number','inputmode="numeric"')}</div>` : ''}
     </div></div>`;
   html += `</div></div>`;
@@ -1791,7 +1791,7 @@ function renderWeek(){
     goalRows += `<div class="row"><span class="k">Kracht A / B</span><span class="v na">nog niet aan de orde — eerst leren</span></div>`;
   goalRows += `<div class="row"><span class="k">Lange wandeling</span><span class="v ${ws.longWalk.applicable?cl(ws.longWalk.done):'na'}">${ws.longWalk.applicable?(ws.longWalk.done?'✓ gedaan':'nog te doen'):'niet deze week (om de week)'}</span></div>`;
   goalRows += `<div class="row"><span class="k">Ochtendroutine</span><span class="v">${ws.routine.done} / 7 dagen</span></div>`;
-  goalRows += `<div class="row"><span class="k">Avondwandeling</span><span class="v na">optioneel / naar behoefte</span></div>`;
+  goalRows += `<div class="row"><span class="k">Wandeling</span><span class="v na">optioneel / naar behoefte</span></div>`;
 
   html += `<div class="card"><h3>Weekdoelen</h3><div class="week-track">${goalRows}</div>
   <p class="tny muted" style="margin-top:8px">${cfg.phase==='leren'||cfg.phase==='consolideren'||cfg.phase==='uitbreiden'
@@ -2878,7 +2878,7 @@ function renderProgress(){
   }
 
   html += `<details class="acc"><summary>Trainingstijd per week</summary><div class="acc-body">
-    <div class="table-wrap"><table class="data"><thead><tr><th>Week</th><th class="num">Hardlopen</th><th class="num">Leermomenten</th><th class="num">Kracht</th><th class="num">Ochtendroutine</th><th class="num">L. wandeling</th><th class="num">Avondwandeling</th><th class="num">Totaal uitgevoerd</th><th class="num" title="Uit geïmporteerde Garmin-activiteiten (los van de handmatige kolommen, niet opgeteld)">Garmin hardlopen</th><th class="num">Garmin wandelen</th><th class="num">Garmin overig</th></tr></thead><tbody>
+    <div class="table-wrap"><table class="data"><thead><tr><th>Week</th><th class="num">Hardlopen</th><th class="num">Leermomenten</th><th class="num">Kracht</th><th class="num">Ochtendroutine</th><th class="num">L. wandeling</th><th class="num">Wandeling</th><th class="num">Totaal uitgevoerd</th><th class="num" title="Uit geïmporteerde Garmin-activiteiten (los van de handmatige kolommen, niet opgeteld)">Garmin hardlopen</th><th class="num">Garmin wandelen</th><th class="num">Garmin overig</th></tr></thead><tbody>
     ${Array.from({length:blockWeeks()},(_,i)=>{ const m=weekMinutes(i), gm=garminWeekMinutes(i); return `<tr><td>Week ${i+1}</td>
       <td class="num">${m.done.hardlopen}</td><td class="num">${m.done.leermomenten}</td><td class="num">${m.done.kracht}</td><td class="num">${m.done.ochtendroutine}</td><td class="num">${m.done['lange wandeling']}</td><td class="num">${m.done.avondwandeling}</td>
       <td class="num">${m.doneTotal} min</td><td class="num">${gm.run}</td><td class="num">${gm.walk}</td><td class="num">${gm.other}</td></tr>`; }).join('')}
@@ -3922,7 +3922,7 @@ function buildPrint(mode){
       <p><b>Weekdoelen:</b> ${goalBits.join(' · ')}</p>
       ${ds.map(d=>`<div style="border:1px solid #bbb;border-radius:8px;padding:9px;margin:6px 0">
         <b>${fmt(d,{weekday:'long',day:'numeric',month:'long'})}</b>
-        <div class="small">□ Meditatie/gebed  □ Ochtendroutine  □ Hoofdtraining  □ Avondwandeling &nbsp; Energie ___ Spierpijn ___ Pijn ___</div></div>`).join('')}
+        <div class="small">□ Meditatie/gebed  □ Ochtendroutine  □ Hoofdtraining  □ Wandeling &nbsp; Energie ___ Spierpijn ___ Pijn ___</div></div>`).join('')}
       ${weekConflicts(wi).map(c=>`<p class="small">⚠ ${esc(c)}</p>`).join('')}
     </div>`;
   } else {
