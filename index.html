@@ -373,7 +373,7 @@ pre.sketch{overflow:auto;background:#eef2ef;padding:12px;border-radius:10px;font
    Opslag: localStorage. Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 5;
-const APP_VERSION = "block2-1.8.7";
+const APP_VERSION = "block2-1.8.8";
 const APP_BUILD = "2026-09-07";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -3192,7 +3192,7 @@ function renderGarmin(){
         ${linked
           ? `<span class="pill done">✓ Coach-run (${esc(fmt(linked.date,{day:'numeric',month:'short'}))})</span> <button class="btn" data-garmin-coach="${esc(a.externalId)}">Bijwerken</button>`
           : `<button class="btn" data-garmin-coach="${esc(a.externalId)}">Gebruik als Coach-run</button>`}
-        <button class="btn" data-garmin-week0="${esc(a.externalId)}">Gebruik als Week 0-conditiemeting</button>
+        ${a.date < blockStart() ? `<button class="btn" data-garmin-week0="${esc(a.externalId)}">Gebruik als Week 0-conditiemeting</button>` : ''}
       </div>` : `<p class="tny muted" style="margin-top:6px">Wandel-/overige activiteit — bewaard voor context; geen automatische koppeling.</p>`}
       </div>`;
     }
