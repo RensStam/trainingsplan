@@ -373,7 +373,7 @@ pre.sketch{overflow:auto;background:#eef2ef;padding:12px;border-radius:10px;font
    Opslag: localStorage. Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 5;
-const APP_VERSION = "block2-1.8.5";
+const APP_VERSION = "block2-1.8.6";
 const APP_BUILD = "2026-09-07";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -3866,8 +3866,26 @@ function garminCommitImport(){
 /* Garmin-activiteit -> Coach-run (idempotent op garminExternalId; handmatige velden blijven) */
 function garminActivityToCoachRun(externalId){
   const a = state.garmin.activities.find(x=> x.externalId === externalId); if(!a) return;
-  if(!confirm(`Garmin-run van ${fmt(a.date,{day:'numeric',month:'long'})} als Coach-run gebruiken?\n\nDatum, duur, afstand, gem. bewogen tempo, HR en VO₂-max worden overgenomen. RPE komt uit Garmin (leidend, overschrijft een eigen cijfer).\nPijn, opmerking, gepland/uitgevoerd en het Coach-trainingstype blijven handmatig.`)) return;
   let r = CB.coachRuns.find(x=> x.garminExternalId === externalId);
+  // Staat er op dezelfde dag al een handmatige run (zonder Garmin-koppeling), of een run waarvan de koppeling
+  // naar een Garmin-activiteit op een ANDERE dag wijst (kapotte koppeling)? Dan die run koppelen i.p.v. een tweede aan te maken.
+  let adopt = null;
+  if(!r){
+    const near = x => x.date === a.date && (a.distanceKm == null || x.distanceKm == null || Math.abs(num(x.distanceKm) - a.distanceKm) <= 0.5);
+    adopt = CB.coachRuns.find(x=> !x.garminExternalId && near(x))
+         || CB.coachRuns.find(x=> { if(!x.garminExternalId || !near(x)) return false;
+              const la = state.garmin.activities.find(y=> y.externalId === x.garminExternalId); return la && la.date !== x.date; });
+  }
+  const intro = adopt
+    ? `Op ${fmt(a.date,{day:'numeric',month:'long'})} staat al een Coach-run (${adopt.distanceKm!=null?nl(adopt.distanceKm)+' km':'zonder afstand'}${adopt.rpe!=null?', RPE '+adopt.rpe:''}). Die wordt aan deze Garmin-run gekoppeld en bijgewerkt — er komt GEEN tweede run bij.
+
+`
+    : `Garmin-run van ${fmt(a.date,{day:'numeric',month:'long'})} als Coach-run gebruiken?
+
+`;
+  if(!confirm(intro + `Datum, duur, afstand, gem. bewogen tempo, HR en VO₂-max worden overgenomen. RPE komt uit Garmin (leidend, overschrijft een eigen cijfer).
+Pijn, opmerking, gepland/uitgevoerd en het Coach-trainingstype blijven handmatig.`)) return;
+  if(adopt){ r = adopt; r.garminExternalId = externalId; }
   const g = {
     // avgPace = gemiddeld BEWOGEN tempo: door de Garmin-normalizer berekend uit
     // movingDuration ÷ afstand op volle precisie — niet uit de afgeronde weergavewaarden.
