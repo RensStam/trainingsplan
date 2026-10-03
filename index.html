@@ -373,7 +373,7 @@ pre.sketch{overflow:auto;background:#eef2ef;padding:12px;border-radius:10px;font
    Opslag: localStorage. Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 5;
-const APP_VERSION = "block2-1.8.6";
+const APP_VERSION = "block2-1.8.7";
 const APP_BUILD = "2026-09-07";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -3172,8 +3172,14 @@ function renderGarmin(){
 
   /* ---- recente activiteiten ---- */
   if(acts.length){
-    html += `<div class="section-title"><h2>Garmin-activiteiten</h2><span class="tny muted">jij beslist of een run een Coach-run of Week 0 is</span></div>`;
-    for(const a of acts.slice(0,12)){
+    const shown = ui.garminRunsOnly ? acts.filter(a=> GARMIN_RUN_TYPES.includes(a.type)) : acts;
+    const list = ui.garminShowAll ? shown : shown.slice(0,12);
+    html += `<div class="section-title"><h2>Garmin-activiteiten</h2><span class="tny muted">jij beslist of een run een Coach-run of Week 0 is</span></div>
+      <div class="range-toggle no-print" style="margin:0 0 10px">
+        <button class="btn sm ${ui.garminRunsOnly?'active':''}" data-garmin-filter="runs">Alleen hardlopen</button>
+        <button class="btn sm ${!ui.garminRunsOnly?'active':''}" data-garmin-filter="all">Alles</button>
+        <span class="tny muted" style="align-self:center">${list.length} van ${shown.length} getoond · nieuwste boven</span></div>`;
+    for(const a of list){
       const f = fmtActivity(a);
       const linked = CB.coachRuns.find(r=> r.garminExternalId === a.externalId);
       const isRun = GARMIN_RUN_TYPES.includes(a.type);
@@ -3190,6 +3196,7 @@ function renderGarmin(){
       </div>` : `<p class="tny muted" style="margin-top:6px">Wandel-/overige activiteit — bewaard voor context; geen automatische koppeling.</p>`}
       </div>`;
     }
+    if(shown.length > list.length) html += `<button class="btn" data-garmin-filter="more">Oudere activiteiten tonen (nog ${shown.length - list.length})</button>`;
   }
 
   /* ---- HRV-context + dagtabel: technische details, niet dagelijks nodig ---- */
@@ -4018,6 +4025,7 @@ document.addEventListener('click', e=>{
   const sx = e.target.closest('[data-strength-ex]'); if(sx){ ui.strengthEx = sx.dataset.strengthEx; renderStrength(); return; }
   const cm = e.target.closest('[data-commit]'); if(cm){ commitDraft(cm.dataset.commit); return; }
   const de = e.target.closest('[data-delete]'); if(de){ if(confirm('Deze registratie verwijderen?')) deleteRecord(de.dataset.delete); return; }
+  const gfl = e.target.closest('[data-garmin-filter]'); if(gfl){ const v = gfl.dataset.garminFilter; if(v==='more') ui.garminShowAll = true; else { ui.garminRunsOnly = (v==='runs'); ui.garminShowAll = false; } renderGarmin(); return; }
   const gc = e.target.closest('[data-garmin-coach]'); if(gc){ garminActivityToCoachRun(gc.dataset.garminCoach); return; }
   const gw = e.target.closest('[data-garmin-week0]'); if(gw){ garminActivityToWeek0(gw.dataset.garminWeek0); return; }
   const acts = {
