@@ -373,7 +373,7 @@ pre.sketch{overflow:auto;background:#eef2ef;padding:12px;border-radius:10px;font
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 5;
-const APP_VERSION = "block2-1.9.2";
+const APP_VERSION = "block2-1.9.3";
 const APP_BUILD = "2026-09-07";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -1552,7 +1552,10 @@ function renderToday(){
   /* ---- OCHTENDCHECK (minimaal, rest achter uitklap) ---- */
   function ochtendcheckCard(){
   const g = state.garmin.daily[d];
-  return `<div class="card"><h3>Ochtendcheck</h3>
+  // korte stand in de kop, zodat je ook ingeklapt ziet wat er al staat
+  const ocBits = [ l.energy!=null&&l.energy!=='' ? 'energie '+l.energy : null, l.stiffness!=null&&l.stiffness!=='' ? 'stijfheid '+l.stiffness : null,
+                   l.pain!=null&&l.pain!=='' ? 'pijn '+l.pain : null, l.weightKg!=null&&l.weightKg!=='' ? nl(l.weightKg)+' kg' : null ].filter(Boolean);
+  return `<details class="acc"><summary>Ochtendcheck <span class="tny muted" style="font-weight:400">· ${ocBits.length ? esc(ocBits.join(' · ')) : 'nog niet ingevuld'}</span></summary><div class="acc-body">
     <div class="form-grid cols-4">
       ${fInput('Energie 1–10','currentBlock.dailyLogs.'+d+'.energy', l.energy,'number','inputmode="numeric" min="1" max="10"')}
       ${fInput('Spierpijn/stijfheid 0–10','currentBlock.dailyLogs.'+d+'.stiffness', l.stiffness,'number','inputmode="numeric" min="0" max="10"')}
@@ -1575,7 +1578,7 @@ function renderToday(){
           .map(([lab,k,u])=>{ const r=recent7(k); return `<div class="rc"><b>${r.value==null?'—':nl(round(r.value, k==='sleepHours'?1:0))}</b><span>${lab} ${u}<br>${r.n}/7</span></div>`; }).join('')}
       </div>
     </div></details>
-  </div>`;
+  </div></details>`;
   }
 
   /* ---- compacte cijferstrip: alleen relevant zodra het programma loopt ---- */
