@@ -333,7 +333,7 @@ pre.sketch{overflow:auto;background:#eef2ef;padding:12px;border-radius:10px;font
   <button class="nav-btn" data-view="garmin"><span class="nav-ico">⌚</span> Garmin</button>
   <button class="nav-btn" data-view="method"><span class="nav-ico">◇</span> Methode</button>
   <button class="nav-btn" data-view="data"><span class="nav-ico">⇩</span> Data &amp; backup</button>
-  <div class="sidebar-foot">Alles blijft lokaal in deze browser (localStorage). Maak geregeld een JSON-back-up.</div>
+  <div class="sidebar-foot" id="sidebarFoot">Opgeslagen in deze browser. Maak geregeld een JSON-back-up.</div>
 </aside>
 <main class="main">
 <div id="backupBar" class="no-print" hidden></div>
@@ -370,10 +370,10 @@ pre.sketch{overflow:auto;background:#eef2ef;padding:12px;border-radius:10px;font
 /* ===========================================================================
    Trainingsplan Rens 2.0 — single-file, lokaal.
    Twee lagen:  historicalData (read-only, vóór vakantie)  +  currentBlock (nieuw).
-   Opslag: localStorage. Back-up: JSON + HTML. schemaVersion voor migraties.
+   Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 5;
-const APP_VERSION = "block2-1.8.8";
+const APP_VERSION = "block2-1.9.0";
 const APP_BUILD = "2026-09-07";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -893,7 +893,7 @@ function saveState(){
   if(typeof syncSoon==='function') syncSoon();
   const el = $('#saveState');
   if(el){ el.textContent = 'Opgeslagen ' + new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
-    clearTimeout(window._st); window._st = setTimeout(()=> el.textContent='Lokaal opgeslagen', 1600); }
+    clearTimeout(window._st); window._st = setTimeout(()=> el.textContent=(typeof syncIdleLabel==='function'?syncIdleLabel():'Lokaal opgeslagen'), 1600); }
 }
 
 var WAS_PRISTINE = !localStorage.getItem(STORAGE_KEY);
@@ -3138,7 +3138,7 @@ function renderGarmin(){
     </div>
     <p class="tny muted" style="margin-top:6px" id="garminZipStatus"></p>
     <details class="acc" style="margin-top:8px"><summary>Details</summary><div class="acc-body">
-      <p class="small">Je kunt hier direct de Garmin "Uw gegevens exporteren"-ZIP kiezen — de app leest die volledig lokaal in de browser uit (geen upload, geen backend). Het oudere pad via <code>garmin_export_to_summary.py</code> → <code>garmin_summary.json</code> (zie GARMIN_JSON_SPEC.md) werkt ook nog, bijvoorbeeld voor het testbestand. Handmatige invoer (RPE, pijn, energie, techniek) blijft altijd nodig.</p>
+      <p class="small">Je kunt hier direct de Garmin "Uw gegevens exporteren"-ZIP kiezen — de app leest die lokaal in de browser uit (de ZIP zelf wordt nergens geüpload). Het oudere pad via <code>garmin_export_to_summary.py</code> → <code>garmin_summary.json</code> (zie GARMIN_JSON_SPEC.md) werkt ook nog, bijvoorbeeld voor het testbestand. Handmatige invoer (RPE, pijn, energie, techniek) blijft altijd nodig.</p>
       ${meta.lastImportedAt?`<p class="small">Bron: <b>${esc(meta.fileName||'garmin_summary.json')}</b>${meta.source?` · <span class="muted">${esc(meta.source)}</span>`:''}<br>Bestand aangemaakt: ${meta.generatedAt?esc(new Date(meta.generatedAt).toLocaleString('nl-NL')):'—'}</p>`:''}
       <p class="tny muted">${fsa
         ? 'Deze browser onthoudt je bestandskeuze binnen deze sessie — daarna volstaat "Garmin-data vernieuwen". Na herladen kies je het bestand opnieuw.'
@@ -3264,8 +3264,8 @@ function renderMethod(){
 function renderData(){
   const H = HISTORICAL;
   const days = Object.keys(H.logs||{}).sort();
-  let html = `<div class="pagehead"><div class="eyebrow">Lokaal · schemaVersion ${SCHEMA_VERSION}</div><h2>Data &amp; backup</h2>
-    <p>De app werkt volledig lokaal (localStorage). Maak geregeld een JSON-back-up. Historische data is read-only en zit ingebed in dit bestand.</p></div>`;
+  let html = `<div class="pagehead"><div class="eyebrow">schemaVersion ${SCHEMA_VERSION}</div><h2>Data &amp; backup</h2>
+    <p>Je data wordt in deze browser bewaard en, als je hieronder bent ingelogd, ook gesynchroniseerd met je eigen cloud (telefoon en computer delen dan dezelfde data). Maak daarnaast geregeld een JSON-back-up. Historische data is read-only.</p></div>`;
 
   html += syncCardHTML();
   html += `<div class="grid cols-2">
@@ -3282,9 +3282,9 @@ function renderData(){
           <button class="btn sm" data-bk="pick">Back-upmap kiezen / wijzigen</button>
           <button class="btn sm" data-bk="run">Nu back-up in de map maken</button>
         </div>
-        <p class="tny muted" style="margin-top:6px">Kies één keer een map (bv. <code>Documenten\Codex\trainingsplan-rens\backups</code>). De app schrijft daarna elke 7 dagen zelf een back-upbestand daarin. Werkt in Chrome/Edge.</p>
+        <p class="tny muted" style="margin-top:6px">Kies één keer een map (bv. <code>Documenten\Codex\trainingsplan-rens\backups</code>). De app schrijft daarna elke 7 dagen zelf een back-upbestand daarin. Werkt alleen in Chrome/Edge op een computer (niet op een telefoon — daar is je cloud-synchronisatie de back-up).</p>
       </div>
-      <p class="small muted" style="margin-top:8px">JSON bevat de volledige status. <code>historicalData</code> zit ingebed in dit HTML-bestand en is read-only — een import overschrijft die nooit.</p>
+      <p class="small muted" style="margin-top:8px">JSON bevat de volledige status. <code>historicalData</code> (je gegevens van vóór 7 september) is read-only — een import overschrijft die nooit. Is de app gesynchroniseerd, dan komt die historie uit je cloud. De losse HTML-download bevat de app + je actuele gegevens; voor een volledige back-up is de JSON-back-up de juiste.</p>
     </div>
     <div class="card"><h3>Afdrukken</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -3293,7 +3293,7 @@ function renderData(){
       </div>
     </div>
     <div class="card"><h3>Herstellen</h3>
-      <p class="small">Verwijdert lokale wijzigingen en herlaadt de standaardstatus. Historische data blijft ongewijzigd (uit de ingebedde bron).</p>
+      <p class="small">Verwijdert je gegevens op dit apparaat en herlaadt de standaardstatus. Historische data blijft ongewijzigd. <b>Let op:</b> ben je ingelogd bij Synchronisatie, dan wordt ook je cloud-versie leeggemaakt (de vorige cloud-versie wordt als vangnet bewaard).</p>
       <button class="btn danger" id="resetData">Lokale data herstellen</button>
     </div>
   </div>`;
@@ -3461,6 +3461,13 @@ async function bkRender(){
   const st = document.getElementById('bkStatus');
   if(st) st.innerHTML = `Laatste back-up: <b>${lastTxt}</b> · back-upmap: <b>${h?esc(h.name):'niet gekoppeld'}</b> · automatisch elke ${BK_DAYS} dagen`;
   if(!bkDue()){ bar.hidden = true; return; }
+  // telefoon/tablet: geen mapkeuze mogelijk -> geen balk als de cloud-synchronisatie de back-up is; anders alleen downloaden
+  if(!window.showDirectoryPicker){
+    if(typeof syncLoggedIn==='function' && syncLoggedIn()){ bar.hidden = true; return; }
+    bar.hidden = false;
+    bar.innerHTML = `<span>🗂 Laatste back-up: ${lastTxt}. Op dit apparaat kan de app niet zelf een map vullen.</span><button class="btn sm primary" data-bk="download">JSON-back-up downloaden</button>`;
+    return;
+  }
   bar.hidden = false;
   bar.innerHTML = h
     ? `<span>🗂 De wekelijkse back-up is aan de beurt (laatste: ${lastTxt}).</span><button class="btn sm primary" data-bk="run">Nu opslaan in de back-upmap</button><button class="btn sm" data-bk="download">Liever downloaden</button>`
@@ -3496,8 +3503,9 @@ function importJsonFile(file){
     try {
       const merged = mergeState(defaultState(), parsed);   // bouwt op verse defaults; historicalData komt altijd uit de ingebedde bron
       state = merged; CB = state.currentBlock;
+      if(typeof syncForceVersion==='function') syncForceVersion();
       saveState(); renderCurrent();
-      alert('JSON geïmporteerd. historicalData blijft de ingebedde read-only bron; je currentBlock-gegevens zijn overgenomen.');
+      alert('JSON geïmporteerd. De historische data blijft ongewijzigd (read-only); je eigen gegevens uit dit bestand zijn overgenomen.' + (typeof syncLoggedIn==='function' && syncLoggedIn() ? '\n\nDit wordt straks ook naar je cloud gesynchroniseerd; de vorige cloud-versie wordt als vangnet bewaard.' : ''));
     } catch(e){ alert('Import mislukt bij het samenvoegen. Je huidige gegevens zijn NIET gewijzigd.'); console.warn(e); }
   };
   r.readAsText(file);
@@ -4037,7 +4045,10 @@ document.addEventListener('click', e=>{
     garminCancelBtn: garminCancelPreview,
     printWeekBtn:()=>buildPrint('week'), printWeek2:()=>buildPrint('week'),
     printReportBtn:()=>buildPrint('report'), printReport2:()=>buildPrint('report'),
-    resetData:()=>{ if(confirm('Alle lokale wijzigingen verwijderen en standaardstatus herladen?')){ localStorage.removeItem(STORAGE_KEY); state = defaultState(); CB = state.currentBlock; ui.date = clampToBlock(todayISO()); renderCurrent(); } },
+    resetData:()=>{
+      const cloud = (typeof syncLoggedIn==='function' && syncLoggedIn());
+      const msg = cloud ? 'Alle gegevens op dit apparaat verwijderen en de standaardstatus herladen?'+'\n\n'+'Je bent ingelogd bij Synchronisatie: dit maakt ook je CLOUD-versie leeg, en dus ook je andere apparaat. De vorige cloud-versie wordt als vangnet bewaard.' : 'Alle lokale wijzigingen verwijderen en standaardstatus herladen?';
+      if(confirm(msg)){ if(cloud && typeof syncForceVersion==='function') syncForceVersion(); localStorage.removeItem(STORAGE_KEY); state = defaultState(); CB = state.currentBlock; ui.date = clampToBlock(todayISO()); saveState(); renderCurrent(); } },
   };
   if(acts[e.target.id]) acts[e.target.id]();
 });
@@ -4207,7 +4218,18 @@ async function fbDb(path, method, body, extra){
 }
 function syncHistPart(){ const H = HISTORICAL; return (H.logs && Object.keys(H.logs).length) ? { profile:H.profile, logs:H.logs, tests:H.tests, activities:H.activities, baselineSummary:H.baselineSummary } : null; }
 function syncTime(){ return new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}); }
-function syncSetMsg(m){ SYNC.msg = m; const el = $('#syncStatus'); if(el) el.textContent = m; const ss = $('#saveState'); if(ss && m) ss.textContent = m; }
+function syncForceVersion(){ const s = syncLoad(); s.lastVersionAt = null; syncSave(s); }
+function syncLoggedIn(){ return fbConfigured() && !!(syncLoad().auth); }
+function syncIdleLabel(){ return syncLoggedIn() ? '☁ Opgeslagen + gesynchroniseerd' : 'Lokaal opgeslagen'; }
+function syncFootUpdate(){
+  const f = $('#sidebarFoot'); if(!f) return;
+  const s = syncLoad();
+  f.textContent = syncLoggedIn()
+    ? 'Je data staat in deze browser en wordt gesynchroniseerd met je eigen cloud (ingelogd als '+(s.auth.email||'?')+'). Maak geregeld een JSON-back-up.'
+    : (fbConfigured() ? 'Opgeslagen in deze browser. Log in onder Data & backup om te synchroniseren tussen apparaten. Maak geregeld een JSON-back-up.' : 'Opgeslagen in deze browser. Maak geregeld een JSON-back-up.');
+  const ss = $('#saveState'); if(ss && !SYNC.msg) ss.textContent = syncIdleLabel();
+}
+function syncSetMsg(m){ SYNC.msg = m; const el = $('#syncStatus'); if(el) el.textContent = m; const ss = $('#saveState'); if(ss && m) ss.textContent = m; syncFootUpdate(); }
 function syncMarkers(cloudAt, localAt){ const s = syncLoad(); s.lastCloudAt = cloudAt; s.lastLocalAt = localAt; syncSave(s); }
 async function fbGetCurrent(uid){
   const raw = await fbDb('trainingsplan/'+uid+'/current');
@@ -4302,7 +4324,7 @@ async function syncLogin(){
   try{ await fbLogin(email, pw); syncSetMsg('☁ Ingelogd'); renderData(); syncNow(); }
   catch(e){ syncSetMsg('Inloggen mislukt: '+e.message); }
 }
-function syncLogout(){ const s = syncLoad(); delete s.auth; syncSave(s); syncSetMsg(''); renderData(); }
+function syncLogout(){ const s = syncLoad(); delete s.auth; syncSave(s); syncSetMsg(''); renderData(); const ss = $('#saveState'); if(ss) ss.textContent = 'Lokaal opgeslagen'; }
 function syncCardHTML(){
   if(!fbConfigured()) return `<div class="card"><h3>Synchronisatie</h3><p class="small muted">Nog niet ingesteld op dit apparaat.</p></div>`;
   const s = syncLoad();
@@ -4330,6 +4352,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 ui.weekIdx = Math.max(0, weekIndexFor(ui.date));
 renderCurrent();
 bkInit();
+syncFootUpdate();
 syncNow();
 
 </script>
