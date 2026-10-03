@@ -373,7 +373,7 @@ pre.sketch{overflow:auto;background:#eef2ef;padding:12px;border-radius:10px;font
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 5;
-const APP_VERSION = "block2-1.9.1";
+const APP_VERSION = "block2-1.9.2";
 const APP_BUILD = "2026-09-07";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -3277,14 +3277,14 @@ function renderData(){
         <button class="btn" id="importJsonBtn">JSON importeren</button>
         <input type="file" id="importJson" class="hidden" accept="application/json">
       </div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line2)">
+      ${bkMobile() ? `<p class="tny muted" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line2)">Automatische back-ups in een map werken alleen op een computer (Chrome/Edge). Op dit apparaat is je cloud-synchronisatie de back-up; met <b>JSON-back-up</b> hierboven kun je altijd zelf een bestand bewaren.</p>` : `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line2)">
         <div class="small" id="bkStatus">…</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
           <button class="btn sm" data-bk="pick">Back-upmap kiezen / wijzigen</button>
           <button class="btn sm" data-bk="run">Nu back-up in de map maken</button>
         </div>
         <p class="tny muted" style="margin-top:6px">Kies één keer een map (bv. <code>Documenten\Codex\trainingsplan-rens\backups</code>). De app schrijft daarna elke 7 dagen zelf een back-upbestand daarin. Werkt alleen in Chrome/Edge op een computer (niet op een telefoon — daar is je cloud-synchronisatie de back-up).</p>
-      </div>
+      </div>`}
       <p class="small muted" style="margin-top:8px">JSON bevat de volledige status. <code>historicalData</code> (je gegevens van vóór 7 september) is read-only — een import overschrijft die nooit. Is de app gesynchroniseerd, dan komt die historie uit je cloud. De losse HTML-download bevat de app + je actuele gegevens; voor een volledige back-up is de JSON-back-up de juiste.</p>
     </div>
     <div class="card"><h3>Afdrukken</h3>
@@ -3454,6 +3454,7 @@ async function bkRunNow(interactive){
   if(perm !== 'granted') return false;
   try{ await bkWrite(h); return true; }catch(e){ console.warn(e); return false; }
 }
+function bkMobile(){ return !window.showDirectoryPicker || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent); }
 async function bkRender(){
   const bar = document.getElementById('backupBar'); if(!bar) return;
   const h = await bkGetHandle();
@@ -3461,14 +3462,8 @@ async function bkRender(){
   const lastTxt = last ? new Date(last).toLocaleDateString('nl-NL',{day:'numeric',month:'long',year:'numeric'}) : 'nog nooit';
   const st = document.getElementById('bkStatus');
   if(st) st.innerHTML = `Laatste back-up: <b>${lastTxt}</b> · back-upmap: <b>${h?esc(h.name):'niet gekoppeld'}</b> · automatisch elke ${BK_DAYS} dagen`;
-  if(!bkDue()){ bar.hidden = true; return; }
-  // telefoon/tablet: geen mapkeuze mogelijk -> geen balk als de cloud-synchronisatie de back-up is; anders alleen downloaden
-  if(!window.showDirectoryPicker){
-    if(typeof syncLoggedIn==='function' && syncLoggedIn()){ bar.hidden = true; return; }
-    bar.hidden = false;
-    bar.innerHTML = `<span>🗂 Laatste back-up: ${lastTxt}. Op dit apparaat kan de app niet zelf een map vullen.</span><button class="btn sm primary" data-bk="download">JSON-back-up downloaden</button>`;
-    return;
-  }
+  if(bkMobile() || !bkDue()){ bar.hidden = true; return; }
+  // telefoon/tablet: geen mapkeuze/automatische back-up mogelijk -> hierboven al weggehaald (nooit een balk)
   bar.hidden = false;
   bar.innerHTML = h
     ? `<span>🗂 De wekelijkse back-up is aan de beurt (laatste: ${lastTxt}).</span><button class="btn sm primary" data-bk="run">Nu opslaan in de back-upmap</button><button class="btn sm" data-bk="download">Liever downloaden</button>`
