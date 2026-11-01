@@ -453,7 +453,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.4.3";
+const APP_VERSION = "block2-2.4.4";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -5036,6 +5036,18 @@ function fitZip(files){
   return Uint8Array.from(out);
 }
 /* bouwt voor elk niveau een apart workoutbestand (elk door fitVerify gecontroleerd); alles of niets */
+/* geplande trainingen van de komende dagen als losse .fit-bestanden (datum in de naam) in één zip — om in Intervals.icu te importeren */
+function fitExportPeriod(days, nowSec){
+  const today = todayISO(), last = addDays(today, days-1), now = nowSec ?? Math.floor(Date.now()/1000), files = [], errors = [];
+  RP().sessions.filter(s=> s.status==='planned' && s.date>=today && s.date<=last).sort(runByDate).forEach((s,i)=>{
+    const t = runTpl(s.templateId), label = t ? t.name : s.name, bytes = fitBuildWorkout(s, now, i), v = fitVerify(bytes, s);
+    if(v.ok) files.push({ name: s.date + '_' + fitAscii(label, 20).replace(/[^A-Za-z0-9]+/g,'_') + '.fit', bytes, title: runDateShort(s.date) + ' ' + label });
+    else errors.push(s.date + ': ' + v.errors.join('; '));
+  });
+  if(errors.length) return { ok:false, errors };
+  if(!files.length) return { ok:false, errors:['Er staan de komende ' + days + ' dagen geen trainingen gepland.'] };
+  return { ok:true, files, zip: fitZip(files) };
+}
 function fitExportAllLevels(nowSec){
   const rp = RP(), now = nowSec ?? Math.floor(Date.now()/1000), files = [], errors = [], used = new Set();
   rp.templates.forEach((t,i)=>{
@@ -5279,6 +5291,7 @@ function runViewProgram(){
     }
     h += `<div class="run-week"><div class="run-week-h">Week ${runIsoWeek(mon)} · ${esc(fmt(mon,{day:'numeric',month:'long'}))} t/m ${esc(fmt(sun,{day:'numeric',month:'long'}))}</div>${rows||'<div class="tny muted">Niets gepland.</div>'}</div>`;
   }
+  h += `<div class="run-actions">${runBtn('exportPeriod','Komende 2 weken voor Intervals.icu (.zip)','sm')}<span class="tny muted" style="align-self:center">tijdelijk, tot de draadloze koppeling werkt</span></div>`;
   h += `<div class="run-actions">${runBtn('planAhead','Vul de voorstellen in ('+(rp.settings.planWeeksAhead||2)+' weken, '+esc(cur.name)+')','sm')}
     ${rp.settings.paused?runBtn('resume','Hervatten','sm'):runBtn('pause','Programma pauzeren','sm')}${runBtn('shift','Komende trainingen verschuiven…','sm')}${runBtn('rebuild','Opnieuw samenstellen…','sm')}</div></div>`;
 
@@ -5563,6 +5576,9 @@ function runAct0(act, args, el){
     case 'edit': RUI.selId = args[0]; RUI.tab = 'edit'; break;
     case 'export': RUI.selId = args[0]; RUI.tab = 'garmin'; break;
     case 'exportFit': { const sess = runSes(args[0]); const r = fitExportSession(sess); if(!r.ok) return runMsg('Export geblokkeerd: '+r.errors.join('; '),'err'); dl(new Blob([r.bytes],{type:'application/octet-stream'}), 'Hardlopen_'+fitAscii(sess.name,20).replace(/\s+/g,'_')+'_'+sess.date+'.fit'); runMsg('Garmin-workout gedownload ('+r.size+' bytes).'); break; }
+    case 'exportPeriod': { const r = fitExportPeriod(14); if(!r.ok) return runMsg(r.errors.join('; '), 'err');
+      dl(new Blob([r.zip],{type:'application/zip'}), 'Atempo_komende_2_weken_'+today+'.zip');
+      runMsg(r.files.length+' training(en) in de zip: '+r.files.map(f=>f.title).join(', ')+'. In Intervals.icu: Library (boek-icoon) › drie puntjes › Import workout, daarna elke workout naar de datum in de naam slepen.'); break; }
     case 'exportAllLevels': { const r = fitExportAllLevels(); if(!r.ok) return runMsg('Export geblokkeerd: '+r.errors.join('; '),'err');
       dl(new Blob([r.zip],{type:'application/zip'}), 'Hardlopen_niveaus_FIT.zip'); runMsg('Zip met '+r.files.length+' workouts gedownload ('+r.files.map(f=>f.title).join(', ')+'). Pak hem uit en kopieer de .fit-bestanden naar het horloge (zie de uitleg hieronder).'); break; }
   }
