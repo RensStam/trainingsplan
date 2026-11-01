@@ -421,7 +421,7 @@ pre.sketch{overflow:auto;background:#eef2ef;padding:12px;border-radius:10px;font
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.0.0";
+const APP_VERSION = "block2-2.0.1";
 const APP_BUILD = "2026-09-07";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -5283,12 +5283,13 @@ function runGarminInstructionsHTML(s){
     else items.push(`<li><b>Herhalen</b> — <b>${x.count}</b> keer, met daarbinnen:<ul><li><b>Hardlopen</b> — Tijd <b>${runClock(x.items[0].sec)}</b></li><li><b>Herstellen</b> — Tijd <b>${runClock(x.items[1].sec)}</b></li></ul></li>`);
   });
   return `<ol class="small run-ol">
-    <li>Open <b>Garmin Connect</b> (app of connect.garmin.com) › <b>Training</b> › <b>Trainingen</b> › <b>Training maken</b> › kies <b>Hardlopen</b>.</li>
-    <li>Geef de training een naam, bijvoorbeeld <b>${nm}</b>.</li>
+    <li>Open <b>Garmin Connect</b> (app of connect.garmin.com) › <b>Meer</b> › <b>Training &amp; plannen</b> › <b>Workouts</b> › kies <b>Maak een workout</b> (niet "Zoek een workout") › kies als sport <b>Hardlopen</b>.</li>
+    <li>Geef de workout een naam, bijvoorbeeld <b>${nm}</b>.</li>
     <li>Voeg de stappen toe in deze volgorde (kies steeds het stap-type en stel de duur in op <b>Tijd</b>):<ol type="a" class="run-ol">${items.join('')}</ol></li>
-    <li>Bij elke stap zonder doel: kies <b>Geen doel</b>.</li>
-    <li>Sla de training op en kies <b>Naar apparaat sturen</b> (of plan hem op ${esc(fmt(s.date,{day:'numeric',month:'long'}))} in de agenda). Synchroniseer je Forerunner 165 met de Garmin Connect-app.</li>
-    <li>Op het horloge: <b>Hardlopen</b> › <b>Trainingen</b> › ${nm}.</li></ol>
+    <li>Bij elke stap zonder doel: kies <b>Geen doel</b> (of laat het doel leeg).</li>
+    <li>Heet een stap-type bij jou net anders, kies dan het type dat erop lijkt: opwarmen · hardlopen · herstel of rust · herhalen · afkoelen.</li>
+    <li>Sla de workout op en kies <b>Naar apparaat sturen</b> (of plan hem op ${esc(fmt(s.date,{day:'numeric',month:'long'}))} in de agenda). Synchroniseer je Forerunner 165 met de Garmin Connect-app.</li>
+    <li>Op het horloge: <b>Hardlopen</b> › <b>Workouts</b> (of <b>Trainingen</b>) › ${nm}.</li></ol>
     <div class="tny muted">Menunamen kunnen per versie van Garmin Connect licht verschillen. Totale duur: ${runMinLabel(runTotals(s.steps).total)}.</div>`;
 }
 function runIntervalsText(s){
