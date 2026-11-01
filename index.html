@@ -421,7 +421,7 @@ pre.sketch{overflow:auto;background:#eef2ef;padding:12px;border-radius:10px;font
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.0.1";
+const APP_VERSION = "block2-2.0.2";
 const APP_BUILD = "2026-09-07";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -4856,21 +4856,23 @@ function fitStepsFromSession(s){
 }
 
 function fitWorkoutName(s){
+  if(s.fitName) return fitAscii(s.fitName, 15);
   const t = runTpl(s.templateId); const base = (t ? t.id : 'Run') + ' ' + (s.date||'').slice(5).replace('-','/');
   return fitAscii('Run ' + base, 15);
 }
 
 /* minimale FIT-schrijver (little-endian, één definitie per berichtsoort) */
-function fitBuildWorkout(s, nowSec){
+function fitBuildWorkout(s, nowSec, salt){
+  salt = salt || 0;
   const steps = fitStepsFromSession(s);
   const body = [];
   const u8 = v => body.push(v & 0xFF), u16 = v => { body.push(v & 0xFF, (v>>8) & 0xFF); },
         u32 = v => { v = v>>>0; body.push(v & 0xFF, (v>>>8) & 0xFF, (v>>>16) & 0xFF, (v>>>24) & 0xFF); };
   const str = v => { const a = []; for(const ch of String(v)) a.push(ch.charCodeAt(0)&0x7F); while(a.length<FIT_STR) a.push(0); a.length = FIT_STR; a[FIT_STR-1] = 0; body.push(...a); };
   const defMsg = (local, def) => { u8(0x40 | local); u8(0); u8(0); u16(def.num); u8(def.fields.length); def.fields.forEach(([n,sz,bt])=>{ u8(n); u8(sz); u8(bt); }); };
-  const created = (nowSec ?? Math.floor(Date.now()/1000)) - FIT_EPOCH_OFFSET;
+  const created = (nowSec ?? Math.floor(Date.now()/1000)) - FIT_EPOCH_OFFSET + salt;
   defMsg(0, FIT_DEF.fileId);
-  u8(0x00); u8(5); u16(255); u16(0); u32(((created ^ 0x5A5A5A5A)>>>0) || 1); u32(created);         // type=workout, manufacturer=development
+  u8(0x00); u8(5); u16(255); u16(0); u32((((created ^ 0x5A5A5A5A) + salt*7919)>>>0) || 1); u32(created);         // type=workout, manufacturer=development
   defMsg(1, FIT_DEF.workout);
   u8(0x01); u8(1); u16(steps.length); str(fitWorkoutName(s));                                         // sport=running
   defMsg(2, FIT_DEF.workoutStep);
@@ -4960,6 +4962,40 @@ function fitExportSession(s){
   const bad = s.steps.find(x=> !(x.sec>0) || !RUN_STEP[x.t]); if(bad) return { ok:false, errors:['Ongeldige stap in de training.'] };
   const bytes = fitBuildWorkout(s), v = fitVerify(bytes, s);
   return v.ok ? { ok:true, bytes, name:fitWorkoutName(s), size:bytes.length } : { ok:false, errors:v.errors };
+}
+
+/* ---------- alle niveaus in één keer: .fit per niveau + zip (store, zonder compressie) ---------- */
+const FIT_CRC32_TAB = (()=>{ const t = []; for(let n=0;n<256;n++){ let c = n; for(let k=0;k<8;k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t.push(c >>> 0); } return t; })();
+function fitCrc32(b){ let c = 0xFFFFFFFF; for(let i=0;i<b.length;i++) c = FIT_CRC32_TAB[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function fitZip(files){
+  const enc = s => Array.from(s).map(ch=>ch.charCodeAt(0) & 0x7F), out = [], cen = [];
+  const u16 = (a,v)=>{ a.push(v & 0xFF, (v>>8) & 0xFF); }, u32 = (a,v)=>{ v = v>>>0; a.push(v & 0xFF, (v>>>8) & 0xFF, (v>>>16) & 0xFF, (v>>>24) & 0xFF); };
+  const d = new Date(), dosTime = (d.getHours()<<11) | (d.getMinutes()<<5) | (d.getSeconds()>>1), dosDate = ((d.getFullYear()-1980)<<9) | ((d.getMonth()+1)<<5) | d.getDate();
+  files.forEach(f=>{
+    const name = enc(f.name), crc = fitCrc32(f.bytes), off = out.length;
+    u32(out,0x04034b50); u16(out,20); u16(out,0); u16(out,0); u16(out,dosTime); u16(out,dosDate); u32(out,crc); u32(out,f.bytes.length); u32(out,f.bytes.length); u16(out,name.length); u16(out,0);
+    out.push(...name); for(let i=0;i<f.bytes.length;i++) out.push(f.bytes[i]);
+    u32(cen,0x02014b50); u16(cen,20); u16(cen,20); u16(cen,0); u16(cen,0); u16(cen,dosTime); u16(cen,dosDate); u32(cen,crc); u32(cen,f.bytes.length); u32(cen,f.bytes.length);
+    u16(cen,name.length); u16(cen,0); u16(cen,0); u16(cen,0); u16(cen,0); u32(cen,0); u32(cen,off); cen.push(...name);
+  });
+  const cdOff = out.length; out.push(...cen);
+  u32(out,0x06054b50); u16(out,0); u16(out,0); u16(out,files.length); u16(out,files.length); u32(out,cen.length); u32(out,cdOff); u16(out,0);
+  return Uint8Array.from(out);
+}
+/* bouwt voor elk niveau een apart workoutbestand (elk door fitVerify gecontroleerd); alles of niets */
+function fitExportAllLevels(nowSec){
+  const rp = RP(), now = nowSec ?? Math.floor(Date.now()/1000), files = [], errors = [], used = new Set();
+  rp.templates.forEach((t,i)=>{
+    let nm = fitAscii(t.name, 15) || ('Niveau '+(i+1)), base = nm, k = 2;
+    while(used.has(nm.toLowerCase())){ nm = fitAscii(base, 12) + ' ' + (k++); }
+    used.add(nm.toLowerCase());
+    const s = { id:'lvl-'+t.id, name:nm, fitName:nm, templateId:t.id, steps:runStepsFromParams(t), target:{ ...(t.target||{ type:'none' }) }, date:'' };
+    const bytes = fitBuildWorkout(s, now, i), v = fitVerify(bytes, s);
+    if(v.ok) files.push({ name: nm.replace(/[^A-Za-z0-9]+/g,'_') + '.fit', bytes, title:nm });
+    else errors.push(nm + ': ' + v.errors.join('; '));
+  });
+  if(errors.length || !files.length) return { ok:false, errors: errors.length ? errors : ['Geen niveaus om te exporteren.'] };
+  return { ok:true, files, zip: fitZip(files) };
 }
 
 /* ===========================================================================
@@ -5307,11 +5343,13 @@ function runViewGarmin(){
   if(s){
     const T = runTotals(s.steps), fit = RUN_FIT_VALIDATED ? fitExportSession(s) : { ok:false, errors:['Export staat uit'] };
     h += `<div class="card"><h3>${esc(s.name)} · ${esc(runDateShort(s.date))} ${runStatusPill(s)}</h3>${runTimelineSVG(s.steps,34)}${runLegend()}${runTotalsLine(s.steps,s.intensity,s.target)}
-      <h4>Exporteren</h4>
+      <div class="notice" style="margin:10px 0"><b>Handigst: alle niveaus in één keer op je horloge</b><br><span class="small">Eén keer doen, daarna staan Niveau A t/m H gewoon in je horloge en hoef je niets meer in Garmin Connect in te typen.</span>
+        <div class="run-actions big">${runBtn('exportAllLevels','Alle niveaus (A–H) downloaden als zip','primary')}</div></div>
+      <h4>Alleen deze training exporteren</h4>
       <div class="run-actions big">${fit.ok ? runBtn('exportFit|'+s.id,'Garmin-workout (.fit) downloaden','primary') : `<span class="warnline" style="margin:0">Export geblokkeerd: ${esc((fit.errors||[]).join('; '))}</span>`}
         ${runBtn('instr|'+s.id,'Garmin-instructies bekijken')}</div>
       ${fit.ok?`<div class="tny muted">Het bestand (${fit.size} bytes) is zojuist door de ingebouwde controle gekomen (CRC, structuur, stappen en duur). <b>Status:</b> technisch gevalideerd; nog niet op jouw Forerunner 165 uitgeprobeerd. Lukt het laden niet, gebruik dan de Garmin-instructies.</div>
-      <details class="acc"><summary>Zo zet je het .fit-bestand op je horloge (USB)</summary><div class="acc-body"><ol class="small run-ol"><li>Sluit je Forerunner 165 met de kabel aan op je computer.</li><li>Open het horloge in de Verkenner › map <b>GARMIN</b> › <b>NewFiles</b> (bestaat die niet: probeer de map <b>Workouts</b>).</li><li>Kopieer het .fit-bestand erin, werp het horloge veilig uit en koppel los. Start het horloge zo nodig opnieuw op.</li><li>Zoek de training op het horloge onder <b>Hardlopen</b> › <b>Trainingen</b>.</li></ol><div class="tny muted">Dit is de route die gebruikers voor veel Garmin-modellen beschrijven; Garmin zelf publiceert deze stappen niet per model. Naam wordt op sommige horloges na 15 tekens afgekapt.</div></div></details>`:''}
+      <details class="acc"><summary>Zo zet je het .fit-bestand op je horloge (USB)</summary><div class="acc-body"><ol class="small run-ol"><li>Pak de zip uit (rechtermuisknop › Alles uitpakken). Sluit je Forerunner 165 met de kabel aan op je computer.</li><li>Open het horloge in de Verkenner › map <b>GARMIN</b> › <b>NewFiles</b> (bestaat die niet: probeer de map <b>Workouts</b>).</li><li>Kopieer het .fit-bestand (of bij de zip: alle bestanden — begin desnoods met alleen <b>Niveau_A.fit</b> als test) erin, werp het horloge veilig uit en koppel los. Start het horloge zo nodig opnieuw op.</li><li>Zoek de training op het horloge onder <b>Hardlopen</b> › <b>Trainingen</b>.</li></ol><div class="tny muted">Dit is de route die gebruikers voor veel Garmin-modellen beschrijven; Garmin zelf publiceert deze stappen niet per model. Naam wordt op sommige horloges na 15 tekens afgekapt.</div></div></details>`:''}
       <details class="acc" ${RUI.instrOpen===s.id?'open':''}><summary>Garmin-instructies (handmatig in Garmin Connect)</summary><div class="acc-body">${runGarminInstructionsHTML(s)}</div></details>
       <details class="acc"><summary>Intervals.icu (voorbereiding)</summary><div class="acc-body"><p class="small">Tekst die je kunt plakken in de workout-editor van Intervals.icu. Daar kan Intervals.icu hem — als jij die koppeling zelf hebt ingericht — naar Garmin Connect sturen.</p>
         <textarea class="run-pre" readonly rows="${Math.min(10, runIntervalsText(s).split('\n').length+1)}">${esc(runIntervalsText(s))}</textarea>
@@ -5501,6 +5539,8 @@ function runAct0(act, args, el){
     case 'export': RUI.selId = args[0]; RUI.tab = 'garmin'; break;
     case 'instr': RUI.selId = args[0]; RUI.instrOpen = args[0]; break;
     case 'exportFit': { const sess = runSes(args[0]); const r = fitExportSession(sess); if(!r.ok) return runMsg('Export geblokkeerd: '+r.errors.join('; '),'err'); dl(new Blob([r.bytes],{type:'application/octet-stream'}), 'Hardlopen_'+fitAscii(sess.name,20).replace(/\s+/g,'_')+'_'+sess.date+'.fit'); runMsg('Garmin-workout gedownload ('+r.size+' bytes).'); break; }
+    case 'exportAllLevels': { const r = fitExportAllLevels(); if(!r.ok) return runMsg('Export geblokkeerd: '+r.errors.join('; '),'err');
+      dl(new Blob([r.zip],{type:'application/zip'}), 'Hardlopen_niveaus_FIT.zip'); runMsg('Zip met '+r.files.length+' workouts gedownload ('+r.files.map(f=>f.title).join(', ')+'). Pak hem uit en kopieer de .fit-bestanden naar het horloge (zie de uitleg hieronder).'); break; }
     case 'copyIv': if(s){ const t = runIntervalsText(s); (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>{ runMsg('Tekst gekopieerd.'); renderCurrent(); }).catch(()=>{ runMsg('Kopiëren lukt hier niet; selecteer de tekst en kopieer hem zelf.','err'); renderCurrent(); }); return; } break;
     case 'exportJsonDefs': { const all = args[0]==='all'; const out = { type:'trainingsplan-hardlopen-definities', version:1, exportedAt:runNow(), templates:rp.templates, settings:{ trainingDays:rp.settings.trainingDays, currentTemplateId:rp.settings.currentTemplateId, thresholds:rp.settings.thresholds }, sessions: all ? rp.sessions.filter(x=>x.status==='planned').map(x=>({ ...x, garminExternalId:null, post:null, next:null, manual:null })) : [] };
       dl(new Blob([JSON.stringify(out,null,2)],{type:'application/json'}), 'hardlopen_definities_'+today+'.json'); runMsg('Definities geëxporteerd.'); break; }
