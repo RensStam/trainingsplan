@@ -421,7 +421,7 @@ pre.sketch{overflow:auto;background:#eef2ef;padding:12px;border-radius:10px;font
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.0.4";
+const APP_VERSION = "block2-2.0.5";
 const APP_BUILD = "2026-09-07";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -819,6 +819,7 @@ const RUN_STEP = {
   walk:     { nl:'Wandelen',  garmin:'Herstellen', color:'#e3b04b', walking:true  },
   cooldown: { nl:'Afkoelen',  garmin:'Afkoelen',  color:'#a9c8d8', walking:true  },
 };
+const RUN_ICON = { warmup:'🔥', run:'🏃', walk:'🚶', cooldown:'❄️', repeat:'🔁', time:'⏱', goal:'🎯', date:'📅' };
 const RUN_DAY_NL = { mon:'maandag', tue:'dinsdag', wed:'woensdag', thu:'donderdag', fri:'vrijdag', sat:'zaterdag', sun:'zondag' };
 const RUN_STATUS_NL = { planned:'gepland', done:'uitgevoerd', skipped:'overgeslagen', cancelled:'geannuleerd' };
 const RUN_LIGHT = {
@@ -889,16 +890,16 @@ function runCompress(steps){
 }
 function runDescribeSteps(steps){
   return runCompress(steps).map(g=>{
-    if(g.kind==='repeat') return `${g.count} × (${runMinLabel(g.items[0].sec)} hardlopen + ${runMinLabel(g.items[1].sec)} wandelen)`;
-    return `${runMinLabel(g.sec)} ${({warmup:'opwarmen',run:'hardlopen',walk:'wandelen',cooldown:'afkoelen'})[g.t]}`;
+    if(g.kind==='repeat') return `${RUN_ICON.repeat} ${g.count} × (${RUN_ICON.run} ${runMinLabel(g.items[0].sec)} hardlopen + ${RUN_ICON.walk} ${runMinLabel(g.items[1].sec)} wandelen)`;
+    return `${RUN_ICON[g.t]} ${runMinLabel(g.sec)} ${({warmup:'opwarmen',run:'hardlopen',walk:'wandelen',cooldown:'afkoelen'})[g.t]}`;
   }).join(' · ');
 }
 function runShortStructure(steps){            // "4 × 3 min hardlopen" / "20 min aaneengesloten"
   const g = runCompress(steps).find(x=> x.kind==='repeat' || x.t==='run');
   if(!g) return '';
-  if(g.kind==='repeat') return `${g.count} × ${runMinLabel(g.items[0].sec)} hardlopen`;
+  if(g.kind==='repeat') return `${RUN_ICON.run} ${g.count} × ${runMinLabel(g.items[0].sec)} hardlopen`;
   const runs = (steps||[]).filter(s=>s.t==='run');
-  return runs.length>1 ? runs.map(s=>runMinLabel(s.sec)).join(' + ') + ' hardlopen' : `${runMinLabel(g.sec)} aaneengesloten hardlopen`;
+  return runs.length>1 ? RUN_ICON.run + ' ' + runs.map(s=>runMinLabel(s.sec)).join(' + ') + ' hardlopen' : `${RUN_ICON.run} ${runMinLabel(g.sec)} aaneengesloten hardlopen`;
 }
 
 /* ---------- standaardprogramma ---------- */
@@ -5010,16 +5011,19 @@ function runTimelineSVG(steps, h){
   (steps||[]).forEach(s=>{
     const w = s.sec/T*W, c = RUN_STEP[s.t].color, dark = s.t!=='run';
     r += `<rect x="${x.toFixed(1)}" y="0" width="${Math.max(w-1,1).toFixed(1)}" height="${H}" rx="3" fill="${c}"><title>${RUN_STEP[s.t].nl} ${runMinLabel(s.sec)}</title></rect>`;
-    if(w>=15 && H>=24) r += `<text x="${(x+w/2).toFixed(1)}" y="${(H/2+3.5).toFixed(1)}" text-anchor="middle" style="font-size:10.5px;font-weight:700;fill:${dark?'#1b3a30':'#ffffff'}">${runMinStr(s.sec)}</text>`;
+    if(w>=15 && H>=34){
+      r += `<text x="${(x+w/2).toFixed(1)}" y="${(H*0.43).toFixed(1)}" text-anchor="middle" style="font-size:${w>=22?13:11}px">${RUN_ICON[s.t]}</text>`;
+      r += `<text x="${(x+w/2).toFixed(1)}" y="${(H*0.80).toFixed(1)}" text-anchor="middle" style="font-size:10.5px;font-weight:700;fill:${dark?'#1b3a30':'#ffffff'}">${runMinStr(s.sec)}</text>`;
+    } else if(w>=15 && H>=24) r += `<text x="${(x+w/2).toFixed(1)}" y="${(H/2+3.5).toFixed(1)}" text-anchor="middle" style="font-size:10.5px;font-weight:700;fill:${dark?'#1b3a30':'#ffffff'}">${runMinStr(s.sec)}</text>`;
     x += w;
   });
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" class="run-tl" role="img" aria-label="Tijdlijn van de training">${r}</svg>`;
 }
-const runLegend = () => `<div class="run-legend">${['warmup','run','walk','cooldown'].map(t=>`<span><i style="background:${RUN_STEP[t].color}"></i>${RUN_STEP[t].nl}</span>`).join('')}</div>`;
+const runLegend = () => `<div class="run-legend">${['warmup','run','walk','cooldown'].map(t=>`<span><i style="background:${RUN_STEP[t].color}"></i>${RUN_ICON[t]} ${RUN_STEP[t].nl}</span>`).join('')}</div>`;
 function runTotalsLine(steps, intensity, target){
   const T = runTotals(steps);
   const tg = target && target.type==='hr' && num(target.low) ? ` · hartslag ${target.low}–${target.high} bpm` : (target && target.type==='pace' && num(target.low) ? ` · tempo ${secToPace(target.low)}–${secToPace(target.high)} /km` : '');
-  return `<div class="run-totals"><b>${runMinLabel(T.total)}</b> totaal · hardlopen <b>${runMinLabel(T.run)}</b> · wandelen <b>${runMinLabel(T.walk)}</b> <span class="tny muted">(waarvan opwarmen/afkoelen ${runMinLabel(T.warm+T.cool)})</span> · <b>${T.intervals}</b> ${T.intervals===1?'blok':'intervallen'} · ${esc(RUN_INTENS[intensity]||'Rustig tempo')}${tg}</div>`;
+  return `<div class="run-totals">${RUN_ICON.time} <b>${runMinLabel(T.total)}</b> totaal · ${RUN_ICON.run} hardlopen <b>${runMinLabel(T.run)}</b> · ${RUN_ICON.walk} wandelen <b>${runMinLabel(T.walk)}</b> <span class="tny muted">(waarvan opwarmen/afkoelen ${runMinLabel(T.warm+T.cool)})</span> · ${RUN_ICON.repeat} <b>${T.intervals}</b> ${T.intervals===1?'blok':'intervallen'} · ${esc(RUN_INTENS[intensity]||'Rustig tempo')}${tg}</div>`;
 }
 function runInp(label, path, val, o){
   o = o || {};
@@ -5034,14 +5038,15 @@ const runYesNo = [['','—'],['ja','ja'],['nee','nee']];
 const runBtn = (act, label, cls, extra) => `<button class="btn ${cls||''}" data-run-act="${esc(act)}"${extra||''}>${label}</button>`;
 function runStatusPill(s){
   const cls = s.status==='done' ? 'done' : s.status==='planned' ? 'priority' : 'warn';
-  return `<span class="pill ${cls}">${RUN_STATUS_NL[s.status]||s.status}</span>`;
+  const ic = ({ done:'✅', planned:'📅', skipped:'⏭', cancelled:'🚫' })[s.status] || '';
+  return `<span class="pill ${cls}">${ic} ${RUN_STATUS_NL[s.status]||s.status}</span>`;
 }
 function runDateLabel(d){ return fmt(d,{weekday:'long',day:'numeric',month:'long'}); }
 function runDateShort(d){ return fmt(d,{weekday:'short',day:'numeric',month:'short'}); }
 
 /* ---------- kopregel + tabs ---------- */
 function renderRunning(){
-  const tabs = [['overview','Overzicht'],['program','Trainingsprogramma'],['edit','Training aanpassen'],['garmin','Garmin & resultaten']];
+  const tabs = [['overview','🏁 Overzicht'],['program','📅 Trainingsprogramma'],['edit','✏️ Training aanpassen'],['garmin','⌚ Garmin & resultaten']];
   let html = `<div class="pagehead"><div class="eyebrow">Persoonlijk programma</div><h2>Hardlopen</h2>
     <p>Rustig opbouwen, pijnvrij blijven. Jij bepaalt wanneer je traint en wanneer je verder opbouwt — de app denkt mee, maar beslist niet.</p></div>
     <div class="run-tabs no-print">${tabs.map(([k,t])=>`<button class="btn sm ${RUI.tab===k?'active':''}" data-run-tab="${k}">${t}</button>`).join('')}</div>`;
@@ -5109,10 +5114,10 @@ function runViewOverview(){
 
   /* mijn volgende training */
   const nx = runNextTraining();
-  h += `<div class="card run-next"><h3>Mijn volgende training</h3>`;
+  h += `<div class="card run-next"><h3>🏃 Mijn volgende training</h3>`;
   if(nx){
     const T = runTotals(nx.steps);
-    h += `<div class="run-next-head"><div><b class="run-big">${esc(nx.name)}</b><div class="small">${esc(runDateLabel(nx.date))}${nx.date===today?' — vandaag':''} · ${runMinLabel(T.total)}</div>
+    h += `<div class="run-next-head"><div><b class="run-big">${esc(nx.name)}</b><div class="small">${RUN_ICON.date} ${esc(runDateLabel(nx.date))}${nx.date===today?' — vandaag':''} · ${RUN_ICON.time} ${runMinLabel(T.total)}</div>
         <div class="small">${esc(runShortStructure(nx.steps))} · ${esc(RUN_INTENS[nx.intensity]||'Rustig tempo')}</div></div></div>
       ${runTimelineSVG(nx.steps, 34)}${runLegend()}
       ${runRestWarnings(nx).map(w=>`<div class="warnline">${esc(w)}</div>`).join('')}
@@ -5131,7 +5136,7 @@ function runViewOverview(){
 
   /* herstelstatus */
   const rd = runReadiness(today), st = RUN_LIGHT[rd.shown];
-  h += `<div class="card run-status st-${rd.shown}"><h3>Mijn herstelstatus</h3>
+  h += `<div class="card run-status st-${rd.shown}"><h3>💚 Mijn herstelstatus</h3>
     <div class="run-light"><span class="run-bulb">${st.emoji}</span><div><b>${esc(runStatusHeadline(rd))}</b><div class="tny muted">${rd.own?'Je eigen beoordeling heeft voorrang op het automatische advies ('+RUN_LIGHT[rd.auto].emoji+' '+RUN_LIGHT[rd.auto].nl.toLowerCase()+').':'Automatisch advies — ondersteunend, geen medische goedkeuring of diagnose.'}</div></div></div>
     <details class="acc"><summary>Waarom?</summary><div class="acc-body">
       ${rd.reasons.length?`<ul class="small">${rd.reasons.map(r=>`<li>${esc(r.text)}</li>`).join('')}</ul>`:''}
@@ -5155,7 +5160,7 @@ function runViewOverview(){
 
   /* evaluatie */
   const ev = runEvaluation();
-  h += `<div class="card"><h3>Evaluatie <span class="sub">na twee uitgevoerde trainingen</span></h3>
+  h += `<div class="card"><h3>📈 Evaluatie <span class="sub">na twee uitgevoerde trainingen</span></h3>
     <p><b>${esc(ev.advice)}</b></p><ul class="small">${ev.why.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>
     <div class="tny muted">Huidig niveau: <b>${esc(ev.level.name)}</b>. De beslissing blijft altijd bij jou.</div>
     <div class="run-actions">${runBtn('level|'+ev.level.id+'|handhaven','Niveau handhaven','sm')}${ev.nextTpl?runBtn('level|'+ev.nextTpl.id+'|opbouwen','Naar '+esc(ev.nextTpl.name),'sm'):''}${ev.prevTpl?runBtn('level|'+ev.prevTpl.id+'|verlagen','Terug naar '+esc(ev.prevTpl.name),'sm'):''}</div></div>`;
@@ -5168,7 +5173,7 @@ function runViewOverview(){
 function runViewProgram(){
   const rp = RP(), today = todayISO(), cur = runCurrentTpl(); let h = '';
   /* niveaus */
-  h += `<div class="card"><h3>Niveaus <span class="sub">jouw sjablonen — wijzigen kan hieronder</span></h3><div class="run-ladder">`;
+  h += `<div class="card"><h3>🎚 Niveaus <span class="sub">jouw sjablonen — wijzigen kan hieronder</span></h3><div class="run-ladder">`;
   rp.templates.forEach(t=>{
     const steps = runStepsFromParams(t), T = runTotals(steps), isCur = t.id===cur.id;
     h += `<div class="run-level ${isCur?'cur':''}"><div class="run-level-top"><b>${esc(t.name)}</b>${t.label?` <span class="tny muted">${esc(t.label)}</span>`:''}${isCur?' <span class="pill done">huidig</span>':''}</div>
@@ -5178,7 +5183,7 @@ function runViewProgram(){
   h += `</div>${runLegend()}</div>`;
 
   /* kalender */
-  h += `<div class="card"><h3>Kalender</h3>
+  h += `<div class="card"><h3>📅 Kalender</h3>
     <p class="tny muted">Voorstellen zijn geen verplichting. Er schuift niets vanzelf op: een gemiste training blijft zichtbaar als gemist.</p>`;
   const sugg = new Set(runSuggestionDates(addDays(today,-7), (rp.settings.planWeeksAhead||2)+1));
   const wk0 = runMonday(addDays(today,-7));
@@ -5190,8 +5195,8 @@ function runViewProgram(){
       ss.forEach(s=>{
         const T = runTotals(s.steps);
         rows += `<div class="run-cal ${s.status}"><div class="run-cal-d">${esc(runDateShort(d))}</div><div class="run-cal-b"><b>${esc(s.name)}</b> ${runStatusPill(s)} <span class="tny muted">${runMinLabel(T.total)} · ${esc(runShortStructure(s.steps))}</span>
-          <div class="run-actions">${s.status==='planned'?runBtn('edit|'+s.id,'Bewerken','sm')+`<span class="run-move"><input type="date" data-bind="__run.ses.${s.id}.date" value="${esc(s.date)}" aria-label="Verplaats naar"></span>`+runBtn('skip|'+s.id,'Overslaan','sm')+runBtn('cancel|'+s.id,'Annuleren','sm'):''}
-          ${s.status==='skipped'||s.status==='cancelled'?runBtn('reopen|'+s.id,'Weer inplannen','sm'):''}${s.status==='done'?runBtn('edit|'+s.id,'Bekijken','sm'):''}${s.status!=='done'?runBtn('del|'+s.id,'Verwijderen','sm danger'):''}</div></div></div>`;
+          <div class="run-actions">${s.status==='planned'?runBtn('edit|'+s.id,'Bewerken','sm')+`<span class="run-move"><input type="date" data-bind="__run.ses.${s.id}.date" value="${esc(s.date)}" aria-label="Verplaats naar"></span>`+runBtn('skip|'+s.id,'⏭ Overslaan','sm')+runBtn('cancel|'+s.id,'🚫 Annuleren','sm'):''}
+          ${s.status==='skipped'||s.status==='cancelled'?runBtn('reopen|'+s.id,'Weer inplannen','sm'):''}${s.status==='done'?runBtn('edit|'+s.id,'Bekijken','sm'):''}${s.status!=='done'?runBtn('del|'+s.id,'🗑 Verwijderen','sm danger'):''}</div></div></div>`;
       });
       if(rest) rows += `<div class="run-cal rest"><div class="run-cal-d">${esc(runDateShort(d))}</div><div class="run-cal-b"><b>Rustdag</b> ${runBtn('rest|'+d,'Markering weg','sm')}</div></div>`;
       if(sugg.has(d) && !ss.length && !rest) rows += `<div class="run-cal sug"><div class="run-cal-d">${esc(runDateShort(d))}</div><div class="run-cal-b"><span class="muted">Voorstel — ${esc(cur.name)}</span>
@@ -5303,7 +5308,7 @@ function runViewEdit(){
     </div></details>
     <details class="acc"><summary>Stap voor stap</summary><div class="acc-body">
       <div class="run-steps">${s.steps.map((st,i)=>`<div class="run-step"><span class="tny muted">${i+1}</span>
-        <select data-bind="__run.step.${s.id}.${i}.t">${Object.entries(RUN_STEP).map(([k,v])=>`<option value="${k}" ${k===st.t?'selected':''}>${v.nl}</option>`).join('')}</select>
+        <select data-bind="__run.step.${s.id}.${i}.t">${Object.entries(RUN_STEP).map(([k,v])=>`<option value="${k}" ${k===st.t?'selected':''}>${RUN_ICON[k]} ${v.nl}</option>`).join('')}</select>
         <input type="text" inputmode="decimal" data-bind="__run.step.${s.id}.${i}.min" value="${esc(runMinStr(st.sec))}" aria-label="Minuten"><span class="tny muted">min</span>
         ${runBtn('stepUp|'+s.id+'|'+i,'↑','sm')}${runBtn('stepDown|'+s.id+'|'+i,'↓','sm')}${runBtn('stepDup|'+s.id+'|'+i,'⧉','sm')}${runBtn('stepDel|'+s.id+'|'+i,'✕','sm danger')}</div>`).join('')}</div>
       <div class="run-actions">${runBtn('stepAdd|'+s.id+'|run','+ Hardlopen','sm')}${runBtn('stepAdd|'+s.id+'|walk','+ Wandelen','sm')}${runBtn('resetToTemplate|'+s.id,'Terug naar niveau-standaard','sm')}${runBtn('saveAsLevel|'+s.id,'Bewaar als nieuw niveau','sm')}</div>
@@ -5315,8 +5320,8 @@ function runViewEdit(){
 function runGarminInstructionsHTML(s){
   const g = runCompress(s.steps), nm = esc(s.name), items = [];
   g.forEach(x=>{
-    if(x.kind==='single') items.push(`<li><b>${RUN_STEP[x.t].garmin}</b> — Tijd <b>${runClock(x.sec)}</b>${x.t==='run'&&s.target&&s.target.type==='hr'&&num(s.target.low)?`, doel hartslag ${s.target.low}–${s.target.high} bpm`:''}${x.t==='run'&&s.target&&s.target.type==='pace'&&num(s.target.low)?`, doel tempo ${secToPace(s.target.low)}–${secToPace(s.target.high)} /km`:''}</li>`);
-    else items.push(`<li><b>Herhalen</b> — <b>${x.count}</b> keer, met daarbinnen:<ul><li><b>Hardlopen</b> — Tijd <b>${runClock(x.items[0].sec)}</b></li><li><b>Herstellen</b> — Tijd <b>${runClock(x.items[1].sec)}</b></li></ul></li>`);
+    if(x.kind==='single') items.push(`<li>${RUN_ICON[x.t]} <b>${RUN_STEP[x.t].garmin}</b> — Tijd <b>${runClock(x.sec)}</b>${x.t==='run'&&s.target&&s.target.type==='hr'&&num(s.target.low)?`, doel hartslag ${s.target.low}–${s.target.high} bpm`:''}${x.t==='run'&&s.target&&s.target.type==='pace'&&num(s.target.low)?`, doel tempo ${secToPace(s.target.low)}–${secToPace(s.target.high)} /km`:''}</li>`);
+    else items.push(`<li>${RUN_ICON.repeat} <b>Herhalen</b> — <b>${x.count}</b> keer, met daarbinnen:<ul><li>${RUN_ICON.run} <b>Hardlopen</b> — Tijd <b>${runClock(x.items[0].sec)}</b></li><li>${RUN_ICON.walk} <b>Herstellen</b> — Tijd <b>${runClock(x.items[1].sec)}</b></li></ul></li>`);
   });
   return `<ol class="small run-ol">
     <li>Open <b>Garmin Connect</b> (app of connect.garmin.com) › <b>Meer</b> › <b>Training &amp; plannen</b> › <b>Workouts</b> › kies <b>Maak een workout</b> (niet "Zoek een workout") › kies als sport <b>Hardlopen</b>.</li>
