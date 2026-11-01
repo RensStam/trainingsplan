@@ -453,7 +453,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.4.4";
+const APP_VERSION = "block2-2.4.5";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -1052,12 +1052,13 @@ function runResultOf(s){
 }
 
 /* ---------- registratie: voor / na / volgende ochtend ---------- */
-/* voor-controle van een dag; ontbreekt de energie, dan geldt die uit je Ochtendcheck (zo vul je die maar één keer in) */
+/* voor-controle van een dag. Energie is één waarde met de Ochtendcheck (dailyLogs); een oude energie die alleen
+   bij Hardlopen is opgeslagen, telt alleen als de Ochtendcheck van die dag geen energie heeft */
 function runPre(date){
   const c = RP().checks[date] || null, l = (CB && CB.dailyLogs) ? CB.dailyLogs[date] : null, e = l ? num(l.energy) : null;
   if(!c && e==null) return null;
   const m = { ...(c||{}) };
-  if(num(m.energy)==null && e!=null){ m.energy = e; m.energyFrom = 'ochtendcheck'; }
+  if(e!=null){ m.energy = e; m.energyFrom = 'ochtendcheck'; }
   return m;
 }
 const runBool = v => v==='ja' ? true : v==='nee' ? false : null;
@@ -5127,7 +5128,7 @@ function runPreForm(date){
       ${runSel('Pijn linkerbeen (0–10)', base+'painLeft', c.painLeft, runNumOpts(0,10))}
       ${runSel('Klachten bij normaal wandelen?', base+'painWalking', runBoolStr(c.painWalking), runYesNo)}
       ${runSel('Klachten bij traplopen?', base+'painStairs', runBoolStr(c.painStairs), runYesNo)}
-    </div>${c.energyFrom ? '<div class="tny muted">Energie overgenomen uit je Ochtendcheck van vandaag.</div>' : ''}${runInp('Bijzonderheden', base+'note', c.note, { ph:'optioneel' })}`;
+    </div><div class="tny muted">Energie is dezelfde als in je Ochtendcheck: aanpassen kan hier of daar.</div>${runInp('Bijzonderheden', base+'note', c.note, { ph:'optioneel' })}`;
 }
 function runPostForm(s){
   const p = s.post || {}, base = '__run.post.'+s.id+'.';
@@ -5495,7 +5496,8 @@ function runSet(parts, raw){
   if(k==='q'){ RUI.q = RUI.q || {}; const q = RUI.q[parts[1]] = RUI.q[parts[1]] || {}; q[parts[2]] = String(raw); return; }
   if(k==='pre'){
     const d = parts[1]; if(!runValidDate(d)) return; const c = rp.checks[d] = rp.checks[d] || {}; const f = parts[2];
-    if(f==='energy'){ if(raw===''){ delete c.energy; } else { const n = numIn(raw,1,10); if(n===undefined) return bad('Energie: 1 t/m 10.'); c.energy = n; } }
+    // energie is één waarde: dezelfde als in de Ochtendcheck van die dag (kiezen of leegmaken geldt voor allebei)
+    if(f==='energy'){ const l = ensureLog(d); if(raw===''){ l.energy = null; delete c.energy; } else { const n = numIn(raw,1,10); if(n===undefined) return bad('Energie: 1 t/m 10.'); l.energy = n; delete c.energy; } }
     else if(f==='painLeft'){ if(raw===''){ delete c.painLeft; } else { const n = numIn(raw,0,10); if(n===undefined) return bad('Pijn: 0 t/m 10.'); c.painLeft = n; } }
     else if(f==='painWalking' || f==='painStairs'){ const b = runBool(raw); if(b===null) delete c[f]; else c[f] = b; }
     else if(f==='note') c.note = String(raw);
