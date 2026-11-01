@@ -361,6 +361,8 @@ pre.sketch{overflow:auto;background:#EDF2F5;padding:12px;border-radius:10px;font
 .run-kpis .rc{flex:1;min-width:120px}
 .run-ol{padding-left:20px;margin:6px 0}.run-ol li{margin:4px 0}
 @media(max-width:560px){ .run-cal{flex-direction:column;gap:2px}.run-cal-d{min-width:0}.run-actions.big .btn{flex:1 1 100%} }
+/* gekozen knop (trainingsdagen, niveau van een training) duidelijk zichtbaar */
+.run-actions .btn.active{background:var(--green);border-color:var(--green);color:#fff}
 /*__HARDLOPEN_CSS_END__*/
 /*__ATEMPO_CSS_BEGIN__*/
 
@@ -451,7 +453,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.4.1";
+const APP_VERSION = "block2-2.4.2";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -5232,11 +5234,12 @@ function runViewProgram(){
   const rp = RP(), today = todayISO(), cur = runCurrentTpl(); let h = '';
   /* niveaus */
   h += `<div class="card"><h3>Niveaus <span class="sub">kies, plan in of pas aan</span></h3><div class="run-ladder">`;
+  const planDay = runSuggestionDates(today,6)[0] || addDays(today,1);     // eerstvolgende vrije trainingsdag
   rp.templates.forEach((t,idx)=>{
     const steps = runStepsFromParams(t), T = runTotals(steps), isCur = t.id===cur.id;
     h += `<div class="run-level ${isCur?'cur':''}"><div class="run-level-top"><b>${esc(t.name)}</b>${t.label?` <span class="tny muted">${esc(t.label)}</span>`:''}${isCur?' <span class="pill done">huidig</span>':''}</div>
       <div class="small">${esc(runShortStructure(steps))} · ${runMinLabel(T.total)}</div>${runTimelineSVG(steps, 20)}
-      <div class="run-actions">${isCur?'':runBtn('level|'+t.id+'|handmatig','Gebruik dit niveau','sm')}${runBtn('plan|'+(runSuggestionDates(today,6)[0]||addDays(today,1))+'|'+t.id,'Inplannen','sm')}</div>
+      <div class="run-actions">${isCur?'':runBtn('level|'+t.id+'|handmatig','Gebruik dit niveau','sm')}${runBtn('plan|'+planDay+'|'+t.id,'Inplannen op '+esc(runDateShort(planDay)),'sm')}</div>
       <details class="acc" ${RUI.manage===t.id?'open':''}><summary>Aanpassen</summary><div class="acc-body">${runLevelEditor(t,idx)}</div></details></div>`;
   });
   h += `</div><div class="run-actions">${runBtn('tplAdd','+ Nieuw niveau toevoegen','sm')}</div>${runLegend()}</div>`;
