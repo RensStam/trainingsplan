@@ -453,7 +453,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.4.2";
+const APP_VERSION = "block2-2.4.3";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -981,6 +981,19 @@ function runNormalize(rp){
   m.checks = (rp.checks && typeof rp.checks==='object') ? { ...rp.checks } : {};
   m.restDays = (rp.restDays && typeof rp.restDays==='object') ? { ...rp.restDays } : {};
   m.levelLog = Array.isArray(rp.levelLog) ? rp.levelLog.slice() : [];
+  // herstel: de standaardniveaus A–H kunnen niet verdwijnen; ontbreekt er een, dan komt het terug met de originele inhoud
+  const defs = runDefaultTemplates(), restored = [];
+  defs.forEach(dt=>{ if(!m.templates.some(t=>t.id===dt.id)){ m.templates.push({ ...dt, target:{ ...dt.target } }); restored.push(dt.id); } });
+  if(restored.length){
+    const order = id => { const i = defs.findIndex(dt=>dt.id===id); return i<0 ? 99 : i; };
+    m.templates.sort((x,y)=> order(x.id)-order(y.id));
+    // was het huidige niveau nooit bewust gekozen (geen niveau-geschiedenis), dan weer het niveau van je eerstvolgende geplande training
+    const next = m.sessions.filter(s=>s.status==='planned').sort((x,y)=>(x.date||'').localeCompare(y.date||''))[0];
+    if(!m.levelLog.some(l=>l.to===m.settings.currentTemplateId) && next && restored.includes(next.templateId)){
+      m.levelLog.push({ date:todayISO(), at:runNow(), from:m.settings.currentTemplateId, to:next.templateId, reason:'hersteld na verwijderen' });
+      m.settings.currentTemplateId = next.templateId;
+    }
+  }
   if(!m.templates.some(t=>t.id===m.settings.currentTemplateId)) m.settings.currentTemplateId = m.templates[0].id;
   return m;
 }
@@ -5227,7 +5240,7 @@ function runLevelEditor(t,i){
         ${runInp('Goed uitgevoerde trainingen voor doorgaan',b+'goodSessionsToProceed',t.goodSessionsToProceed,{type:'number',inputmode:'numeric',min:1,max:10})}
       </div>${runInp('Opmerkingen',b+'notes',t.notes)}
       ${runTimelineSVG(runStepsFromParams(t),26)}
-      <div class="run-actions">${i>0?runBtn('tplUp|'+t.id,'↑ Omhoog','sm'):''}${i<rp.templates.length-1?runBtn('tplDown|'+t.id,'↓ Omlaag','sm'):''}${runBtn('tplDup|'+t.id,'Dupliceren','sm')}${rp.templates.length>1?runBtn('tplDel|'+t.id,'Verwijderen','sm danger'):''}</div>`;
+      <div class="run-actions">${i>0?runBtn('tplUp|'+t.id,'↑ Omhoog','sm'):''}${i<rp.templates.length-1?runBtn('tplDown|'+t.id,'↓ Omlaag','sm'):''}${runBtn('tplDup|'+t.id,'Dupliceren','sm')}${rp.templates.length>1 && !runDefaultTemplates().some(d=>d.id===t.id) ? runBtn('tplDel|'+t.id,'Verwijderen','sm danger') : ''}</div>`;
 }
 
 function runViewProgram(){
@@ -5538,7 +5551,13 @@ function runAct0(act, args, el){
     case 'stepDown': if(s && s.status!=='done' && +args[1]<s.steps.length-1){ const i = +args[1]; [s.steps[i+1],s.steps[i]] = [s.steps[i],s.steps[i+1]]; } break;
     case 'tplUp': case 'tplDown': { const i = rp.templates.findIndex(t=>t.id===args[0]), j = act==='tplUp' ? i-1 : i+1; if(i<0 || j<0 || j>=rp.templates.length) return; [rp.templates[i],rp.templates[j]] = [rp.templates[j],rp.templates[i]]; RUI.manage = args[0]; break; }
     case 'tplDup': { const t = runTpl(args[0]); if(!t) return; const c = JSON.parse(JSON.stringify(t)); c.id = 'T'+runId().slice(1); c.name = t.name+' (kopie)'; rp.templates.splice(rp.templates.indexOf(t)+1,0,c); RUI.manage = c.id; break; }
-    case 'tplDel': { const t = runTpl(args[0]); if(!t || rp.templates.length<=1) return; const used = rp.sessions.filter(x=>x.templateId===t.id).length; if(!confirm('Niveau "'+t.name+'" verwijderen?'+(used?'\n\n'+used+' bestaande training(en) behouden hun eigen stappen en blijven gewoon staan.':''))) return; rp.templates = rp.templates.filter(x=>x.id!==t.id); if(rp.settings.currentTemplateId===t.id) rp.settings.currentTemplateId = rp.templates[0].id; RUI.manage = null; break; }
+    case 'tplDel': { const t = runTpl(args[0]); if(!t || rp.templates.length<=1) return;
+      if(runDefaultTemplates().some(d=>d.id===t.id)) return runMsg('De standaardniveaus A t/m H kun je niet verwijderen. Pas ze aan onder "Aanpassen" als je iets wilt veranderen.', 'err');
+      const used = rp.sessions.filter(x=>x.templateId===t.id).length;
+      if(used) return runMsg('"'+t.name+'" hoort bij '+used+' training(en) en kan daarom niet worden verwijderd.', 'err');
+      if(!confirm('Niveau "'+t.name+'" verwijderen?')) return;
+      if(!confirm('Weet je het zeker? "'+t.name+'" wordt definitief verwijderd.')) return;
+      rp.templates = rp.templates.filter(x=>x.id!==t.id); if(rp.settings.currentTemplateId===t.id) rp.settings.currentTemplateId = rp.templates[0].id; RUI.manage = null; break; }
     case 'tplAdd': { const base = runCurrentTpl(); const c = JSON.parse(JSON.stringify(base)); c.id = 'T'+runId().slice(1); c.name = 'Nieuw niveau'; c.label = ''; rp.templates.push(c); RUI.manage = c.id; runMsg('Nieuw niveau toegevoegd (kopie van het huidige). Pas het aan onder "Aanpassen".'); break; }
     case 'view': RUI.viewOpen = RUI.viewOpen===args[0] ? null : args[0]; break;
     case 'edit': RUI.selId = args[0]; RUI.tab = 'edit'; break;
