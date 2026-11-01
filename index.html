@@ -451,8 +451,8 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.3.0";
-const APP_BUILD = "2026-09-07";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
+const APP_VERSION = "block2-2.4.0";
+const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
    niet definitief. Geen officiële trainingsweek, geen adherence, geen achteraf-reconstructie. */
@@ -1096,11 +1096,15 @@ function runReadiness(date){
   else if(num(pre.painLeft)>th.greenPainMax) auto = 'orange';
   else auto = 'green';
   if(!red && !orange && missing.length) reasons.push({ sev:'info', text:'Gegevens ontbreken — daarom geen groene status.' });
-  return { auto, own, shown: own || auto, reasons, missing, last, hasPre: !!pre };
+  // trainingsadvies = de strengste van automatisch en eigen beoordeling (rood > oranje > groen):
+  // een eigen beoordeling kan het advies strenger maken, maar een automatische waarschuwing nooit wegnemen
+  const RANK = { green:0, orange:1, red:2 };
+  const shown = own && RANK[own] > RANK[auto] ? own : auto;
+  return { auto, own, shown, ownMilder: !!own && RANK[own] < RANK[auto], reasons, missing, last, hasPre: !!pre };
 }
-/* korte, leesbare kop voor het overzicht */
+/* korte, leesbare kop voor het overzicht (gaat over het gecombineerde advies) */
 function runStatusHeadline(rd){
-  if(rd.own) return 'Jouw eigen beoordeling: '+RUN_LIGHT[rd.own].head.toLowerCase()+'.';
+  if(rd.own && rd.shown===rd.own && rd.own!==rd.auto) return 'Jouw eigen beoordeling: '+RUN_LIGHT[rd.own].head.toLowerCase()+'.';
   const first = rd.reasons.find(r=>r.sev==='red') || rd.reasons.find(r=>r.sev==='orange');
   if(rd.auto==='red') return (first ? first.text+' — ' : '')+'vandaag niet hardlopen.';
   if(rd.auto==='orange'){
@@ -1637,12 +1641,12 @@ function weekConflicts(wi){
   const near = (a,b)=> Math.abs((parseDate(a)-parseDate(b))/86400000) <= 1;
   const leg = [...legDays].sort();
   for(const d of leg){
-    for(const r of runDays){ if(near(d,r) && d!==r) out.push(`${fmt(d,{weekday:'short',day:'numeric',month:'short'})}: zware beenprikkel ligt vlak bij een Garmin Coach-run (${fmt(r,{weekday:'short'})}).`); }
+    for(const r of runDays){ if(near(d,r) && d!==r) out.push(`${fmt(d,{weekday:'short',day:'numeric',month:'short'})}: zware beenprikkel ligt vlak bij een ${runReplacesCoach()?'hardlooptraining':'Garmin Coach-run'} (${fmt(r,{weekday:'short'})}).`); }
     for(const w of walkDays){ if(near(d,w) && d!==w) out.push(`${fmt(d,{weekday:'short',day:'numeric',month:'short'})}: zware beenprikkel ligt vlak bij de lange wandeling (${fmt(w,{weekday:'short'})}).`); }
   }
   for(let i=1;i<leg.length;i++){ if(near(leg[i-1],leg[i])) out.push(`${fmt(leg[i-1],{weekday:'short'})}–${fmt(leg[i],{weekday:'short'})}: twee zware beenprikkels liggen dicht bij elkaar — las er een rustige dag tussen.`); }
   for(const d of learnLegDays){
-    for(const r of runDays){ if(near(d,r) && d!==r) out.push(`${fmt(d,{weekday:'short',day:'numeric',month:'short'})}: technisch leermoment voor de benen ligt vlak bij een Garmin Coach-run (${fmt(r,{weekday:'short'})}) — hou het leermoment dan echt licht.`); }
+    for(const r of runDays){ if(near(d,r) && d!==r) out.push(`${fmt(d,{weekday:'short',day:'numeric',month:'short'})}: technisch leermoment voor de benen ligt vlak bij een ${runReplacesCoach()?'hardlooptraining':'Garmin Coach-run'} (${fmt(r,{weekday:'short'})}) — hou het leermoment dan echt licht.`); }
   }
   return [...new Set(out)];
 }
@@ -2122,11 +2126,19 @@ function snapshotAdvice(d){
   if(l.advice && l.advice.inputsKey === key && l.advice.version === a.version) return;
   l.advice = { status:a.status, reasons:a.reasons.map(r=>r.text), version:a.version, inputs:a.inputs, inputsKey:key, computedAt: new Date().toISOString() };
 }
-/* effectieve dagstatus voor historie/tellingen: eigen beoordeling (l.traffic)
-   wint van het automatische advies; anders het bewaarde advies. */
+/* strengste van automatisch advies en eigen beoordeling (rood > oranje > groen): een eigen beoordeling
+   kan het advies strenger maken, maar een automatische waarschuwing nooit wegnemen. Zonder automatisch
+   advies telt de eigen beoordeling. Alleen voor weergave: opgeslagen gegevens worden niet aangepast. */
+const STATUS_RANK = { green:0, orange:1, red:2 };
+function strictestStatus(auto, own){
+  if(!(own in STATUS_RANK)) return auto || null;
+  if(!(auto in STATUS_RANK)) return own;
+  return STATUS_RANK[own] > STATUS_RANK[auto] ? own : auto;
+}
+/* effectieve dagstatus voor historie/tellingen: de strengste van het bewaarde advies en je eigen beoordeling */
 function effectiveDayStatus(d){
   const l = CB.dailyLogs[d]; if(!l) return null;
-  return l.traffic || (l.advice && l.advice.status) || null;
+  return strictestStatus(l.advice && l.advice.status, l.traffic);
 }
 /* -- alleen nog voor de Progressie › Herstel-trend (beschrijvend, geen advies) -- */
 function recoveryFlags(){
@@ -2163,11 +2175,14 @@ function dayAdviceBlock(d, primaryType){
     ? `<div class="panel">Jouw beoordeling: <b>${DAY_STATUS[own].emoji} ${esc(DAY_STATUS[own].label)}</b>${own!==a.status?' — wijkt af van het automatische advies':', gelijk aan het advies'}. <a href="#" data-own-clear="${d}">wissen</a></div>`
     : `<div class="panel">Eigen inschatting kiezen (staat los van het automatische advies):
         <span class="own-row">${['green','orange','red'].map(s=>`<a href="#" data-own-set="${d}|${s}" title="${esc(DAY_STATUS[s].label)}">${DAY_STATUS[s].emoji}</a>`).join('')}</span></div>`;
-  return `<div class="dagadvies st-${a.status}">
+  const shown = strictestStatus(a.status, own);
+  const stricterOwn = shown!==a.status, milderOwn = !!own && STATUS_RANK[own] < STATUS_RANK[a.status];
+  return `<div class="dagadvies st-${shown}">
     <div class="lbl">Dagadvies${own&&own!==a.status?` <span class="own-tag">eigen ${DAY_STATUS[own].emoji}</span>`:''}</div>
-    <div class="status">${a.emoji} ${esc(a.label)}</div>
-    <div class="sub">${esc(a.summary)}</div>
-    <div class="act">${esc(adviceForActivity(a.status, primaryType))}</div>
+    <div class="status">${stricterOwn ? `${DAY_STATUS[shown].emoji} ${esc(DAY_STATUS[shown].label)}` : `${a.emoji} ${esc(a.label)}`}</div>
+    <div class="sub">${stricterOwn ? `Jouw eigen beoordeling is strenger dan het automatische advies (${a.emoji} ${esc(a.label)}).` : esc(a.summary)}</div>
+    ${milderOwn ? `<div class="sub">Je eigen beoordeling (${DAY_STATUS[own].emoji} ${esc(DAY_STATUS[own].label)}) wijkt af van de automatische waarschuwing. De waarschuwing blijft zichtbaar omdat er risicofactoren zijn geregistreerd.</div>` : ''}
+    <div class="act">${esc(adviceForActivity(shown, primaryType))}</div>
     <div class="toggles">
       <details><summary>Waarom?</summary><div class="panel">Gebruikte waarden (regelversie ${a.version}): ${adviceValueList(a.inputs)}. Waarden van vandaag wegen zwaarder dan de 7-daagse trend. De app beslist en blokkeert niets.</div></details>
       <details><summary>Eigen beoordeling</summary>${ownPanel}</details>
@@ -2297,7 +2312,7 @@ function renderWeek(){
     ${Object.keys(mins.done).map(k=>`<tr><td>${esc(k)}${k==='ochtendroutine'?` <span class="tny muted">(${mins.routineDays}/7 dagen)</span>`:''}</td><td class="num">${mins.plan[k]==null?'—':mins.plan[k]+' min'}</td><td class="num">${mins.done[k]?mins.done[k]+' min':'—'}</td></tr>`).join('')}
     <tr class="group"><td>Uitgevoerd totaal</td><td class="num">—</td><td class="num">${mins.doneTotal} min</td></tr>
     </tbody></table></div>
-    <p class="tny muted">Gepland is bewust vaak "—": Garmin Coach-duur komt van Greg, krachtduur uit je eigen invoer, wandelingen uit de geregistreerde tijd. De <b>ochtendroutine wordt geteld in dagen</b> (${mins.routineDays}/7), niet in minuten — de ±${mins.routineTarget} min is een richttijd, geen meting. Alleen een handmatig ingevulde routineduur telt in de minuten.</p></div></details>`;
+    <p class="tny muted">Gepland is bewust vaak "—": ${runReplacesCoach()?'hardloopduur komt uit je trainingen bij Hardlopen':'Garmin Coach-duur komt van Greg'}, krachtduur uit je eigen invoer, wandelingen uit de geregistreerde tijd. De <b>ochtendroutine wordt geteld in dagen</b> (${mins.routineDays}/7), niet in minuten — de ±${mins.routineTarget} min is een richttijd, geen meting. Alleen een handmatig ingevulde routineduur telt in de minuten.</p></div></details>`;
 
   html += `<details class="acc"><summary>Blok-instellingen</summary><div class="acc-body"><div class="form-grid cols-4">
     ${fInput('Startdatum blok','currentBlock.startDate', CB.startDate,'date')}
@@ -2366,10 +2381,10 @@ function coachCard(d){
   const p = idx>=0 ? `currentBlock.coachRuns.${idx}.` : `__d.coach.${d}.`;
   const summary = idx>=0 ? [r.type, r.distanceKm!=null&&nl(r.distanceKm)+' km', r.totalMin!=null&&nl(r.totalMin)+' min', r.avgPace, r.done===true?'✓ uitgevoerd':r.done===false?'niet uitgevoerd':'uitvoering ?'].filter(Boolean).join(' · ') : '';
   const body = `
-    <p class="tny muted" style="margin:0 0 10px">De app ontwerpt geen loopschema. Voer in of importeer wat Greg gepland heeft en wat je hebt uitgevoerd.</p>
+    <p class="tny muted" style="margin:0 0 10px">${runReplacesCoach()?'Losse hardloopregistratie buiten het programma. Trainingen uit je hardloopprogramma registreer je bij Hardlopen.':'De app ontwerpt geen loopschema. Voer in of importeer wat Greg gepland heeft en wat je hebt uitgevoerd.'}</p>
     <div class="form-grid">
       ${mText('Type Coach-training',p+'type', r.type,'bv. easy run / tempo')}
-      ${mSelect('Gepland door Greg',p+'planned', r.planned, [['','—'],['ja','ja'],['nee','nee']])}
+      ${mSelect(runReplacesCoach()?'Gepland door Garmin Coach (historisch)':'Gepland door Greg',p+'planned', r.planned, [['','—'],['ja','ja'],['nee','nee']])}
       ${mSelect('Uitgevoerd',p+'done', idx>=0?(r.done===true?'ja':r.done===false?'nee':''):(r.done??''), [['','— nog niet bekend'],['ja','ja'],['nee','nee']])}
       ${mText('Geplande inhoud',p+'plannedContent', r.plannedContent)}
       ${mText('Uitgevoerde inhoud',p+'doneContent', r.doneContent)}
@@ -2782,10 +2797,10 @@ function dagdataRows(){
       if(col.run){
         cells[col.key] = { val: isHist ? null : dagdataRunVal(date, col, g), src:'run', editable:false, ro:true };
       } else if(col.computed){
-        // Dagadvies (read-only in de tabel): eigen beoordeling wint, anders het automatische advies.
+        // Dagadvies (read-only in de tabel): de strengste van automatisch advies en eigen beoordeling.
         // Live berekend voor weergave; de dag-snapshot (l.advice) blijft ongewijzigd.
-        const s = isHist ? null : (l.traffic || dayAdvice(date).status);
-        cells[col.key] = { val: s || null, src: s && l.traffic ? 'own' : (s?'auto':null), editable:false, ro:true };
+        const au = isHist ? null : dayAdvice(date).status, s = isHist ? null : strictestStatus(au, l.traffic);
+        cells[col.key] = { val: s || null, src: s && l.traffic && s===l.traffic && s!==au ? 'own' : (s?'auto':null), editable:false, ro:true };
       } else if(isHist){
         cells[col.key] = { val: dagdataHistVal(h, col), src:'H', editable:false };
       } else {
@@ -3027,7 +3042,7 @@ function measureTestsHTML(){
       ${fSelect('Kracht A/B praktisch uitvoerbaar?',pe+'krachtLukt', ev.krachtLukt,[['','—'],['nog niet','nog niet'],['deels','deels'],['ja, rustig','ja, rustig'],['ja, vlot','ja, vlot']])}
       ${fSelect('Mobiliteit / soepelheid t.o.v. W0',pe+'mobiliteit', ev.mobiliteit,[['','—'],['minder','minder'],['gelijk','gelijk'],['iets beter','iets beter'],['duidelijk beter','duidelijk beter']])}
       ${fSelect('Links/rechts-verschil t.o.v. W0',pe+'linksRechts', ev.linksRechts,[['','—'],['groter','groter'],['gelijk','gelijk'],['kleiner','kleiner']])}
-      ${fSelect('Hardlopen (Garmin Coach) — ontwikkeling',pe+'hardlopen', ev.hardlopen,[['','—'],['stilgestaan','stilgestaan'],['licht vooruit','licht vooruit'],['duidelijk vooruit','duidelijk vooruit'],['5 km gehaald','5 km gehaald']])}
+      ${fSelect('Hardlopen — ontwikkeling',pe+'hardlopen', ev.hardlopen,[['','—'],['stilgestaan','stilgestaan'],['licht vooruit','licht vooruit'],['duidelijk vooruit','duidelijk vooruit'],['5 km gehaald','5 km gehaald']])}
       ${fSelect('Herstel (energie / slaap / HRV) over het blok',pe+'herstel', ev.herstel,[['','—'],['onder druk','onder druk'],['stabiel','stabiel'],['verbeterd','verbeterd']])}
       ${fSelect('Gewichtstrend over het blok',pe+'gewicht', ev.gewicht,[['','—'],['gedaald','gedaald'],['stabiel','stabiel'],['gestegen','gestegen']])}
       ${fInput('Gemiddelde RPE krachtsessies (indicatie)',pe+'rpeGemiddeld', ev.rpeGemiddeld,'number','inputmode="decimal" step="0.5"')}
@@ -3037,7 +3052,7 @@ function measureTestsHTML(){
   </div></details>`;
 
   html += `<details class="acc"><summary>Meetmethode <span class="tny muted">identiek in W0 en W6</span></summary><div class="acc-body"><ul class="small">
-    <li><b>Conditie:</b> Garmin Coach-activiteiten — VO₂-max, langste aaneengesloten looptijd, afstand, gem. bewogen tempo (moving pace uit Garmin), gem. HR, RPE. Geen maximale test.</li>
+    <li><b>Conditie:</b> Garmin-hardloopactiviteiten — VO₂-max, langste aaneengesloten looptijd, afstand, gem. bewogen tempo (moving pace uit Garmin), gem. HR, RPE. Geen maximale test.</li>
     <li><b>Push-ups:</b> gestandaardiseerde technische set; stop ~2 nette herhalingen vóór techniekverlies.</li>
     <li><b>30-sec chair stand:</b> stevige stoel, armen gekruist; volledige herhalingen in 30 s.</li>
     <li><b>Single-leg stand:</b> per zijde, max 60 s, twee geldige pogingen, beste telt.</li>
@@ -3325,7 +3340,7 @@ function adviceStatsHTML(range){
   const isoWeek = d=>{ const x=parseDate(d); const th=new Date(x.getFullYear(),x.getMonth(),x.getDate()+3-((x.getDay()+6)%7)); const w1=new Date(th.getFullYear(),0,4); return 1+Math.round(((th-w1)/86400000-3+((w1.getDay()+6)%7))/7); };
   const weeks = {};
   days.forEach(d=>{
-    let s = CB.dailyLogs[d]?.traffic || CB.dailyLogs[d]?.advice?.status || null;
+    let s = effectiveDayStatus(d);
     if(!s){ try{ s = dayAdvice(d).status || null; }catch(e){ s = null; } }
     if(!s) return;                                   // dagen zonder advies tellen niet mee en krijgen geen plek
     const m = monday(d); const w = weeks[m] = weeks[m] || { m, cnt:{green:0, orange:0, red:0}, n:0 };
@@ -3638,8 +3653,8 @@ function renderMethod(){
 
   html += `<div class="grid cols-2">
     <div class="card"><h3>Trainingshiërarchie</h3><ol>
-      <li><b>Garmin Coach (Greg)</b> bepaalt de hardlooptraining. De app ontwerpt géén loopschema en voegt geen hardlooptraining toe.</li>
-      <li><b>Twee krachttrainingen</b> (Kracht A + B) per normale week, flexibel rond de Coach-sessies.</li>
+      <li>${runReplacesCoach()?'<b>Hardlopen</b> (eigen programma in Atempo) bepaalt de looptraining; jij beslist over opbouw. Garmin Coach geldt alleen nog voor historische registraties.':'<b>Garmin Coach (Greg)</b> bepaalt de hardlooptraining. De app ontwerpt géén loopschema en voegt geen hardlooptraining toe.'}</li>
+      <li><b>Twee krachttrainingen</b> (Kracht A + B) per normale week, ${runReplacesCoach()?'flexibel rond de hardlooptrainingen.':'flexibel rond de Coach-sessies.'}</li>
       <li><b>Ochtendroutine</b>: eerst meditatie · contemplatie · gebed, dan de lichamelijke routine. Mentale onderdelen krijgen geen prestatie-KPI.</li>
     </ol></div>
     <div class="card"><h3>Wat telt als succes</h3><ul>
@@ -3687,7 +3702,7 @@ function renderData(){
     <div class="card"><h3>Back-up &amp; herstel</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn primary" id="exportJson">JSON-back-up</button>
-        <button class="btn" id="downloadHtml">Actuele HTML downloaden</button>
+        <button class="btn" id="downloadHtml" title="Bevat je persoonlijke gegevens — niet in GitHub of op een openbare plek zetten">Actuele HTML downloaden</button>
         <button class="btn" id="importJsonBtn">JSON importeren</button>
         <input type="file" id="importJson" class="hidden" accept="application/json">
       </div>
@@ -3899,6 +3914,8 @@ function exportJson(){
   setTimeout(bkRender, 50);
 }
 function downloadHtml(){
+  if(!confirm('Let op: dit HTML-bestand bevat al je persoonlijke trainings- en gezondheidsgegevens.' + String.fromCharCode(10,10) +
+    'Bewaar het alleen op je eigen computer of in je eigen OneDrive. Zet het niet in GitHub of op een andere openbare plek.' + String.fromCharCode(10,10) + 'Doorgaan?')) return;
   const clone = document.documentElement.cloneNode(true);
   const h = clone.querySelector('#app-state'); if(h) h.textContent = JSON.stringify(state).replace(/<\//g,'<\\/');
   clone.querySelector('#sidebar')?.classList.remove('open');
@@ -5132,7 +5149,7 @@ function runViewOverview(){
   /* herstelstatus */
   const rd = runReadiness(today), st = RUN_LIGHT[rd.shown];
   h += `<div class="card run-status st-${rd.shown}"><h3>Mijn herstelstatus</h3>
-    <div class="run-light"><span class="run-bulb">${st.emoji}</span><div><b>${esc(runStatusHeadline(rd))}</b><div class="tny muted">${rd.own?'Je eigen beoordeling heeft voorrang op het automatische advies ('+RUN_LIGHT[rd.auto].emoji+' '+RUN_LIGHT[rd.auto].nl.toLowerCase()+').':'Automatisch advies — ondersteunend, geen medische goedkeuring of diagnose.'}</div></div></div>
+    <div class="run-light"><span class="run-bulb">${st.emoji}</span><div><b>${esc(runStatusHeadline(rd))}</b><div class="tny muted">Automatische beoordeling: ${RUN_LIGHT[rd.auto].emoji} ${esc(RUN_LIGHT[rd.auto].nl.toLowerCase())} · Mijn beoordeling: ${rd.own?RUN_LIGHT[rd.own].emoji+' '+esc(RUN_LIGHT[rd.own].nl.toLowerCase()):'niet ingevuld'}</div>${rd.ownMilder?'<div class="tny" style="margin-top:4px">Je eigen beoordeling wijkt af van de automatische waarschuwing. De waarschuwing blijft zichtbaar omdat er risicofactoren of ontbrekende gegevens zijn geregistreerd.</div>':''}<div class="tny muted">Ondersteunend advies, geen medische goedkeuring of diagnose.</div></div></div>
     <details class="acc"><summary>Waarom?</summary><div class="acc-body">
       ${rd.reasons.length?`<ul class="small">${rd.reasons.map(r=>`<li>${esc(r.text)}</li>`).join('')}</ul>`:''}
       ${rd.missing.length?`<div class="tny muted">Ontbrekend: ${rd.missing.map(esc).join('; ')}.</div>`:''}
