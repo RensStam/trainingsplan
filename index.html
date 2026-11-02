@@ -466,7 +466,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.5.2";
+const APP_VERSION = "block2-2.5.3";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -4793,6 +4793,7 @@ async function syncNow(retry){
     const localChanged = state.meta.updatedAt !== s.lastLocalAt;
     const cloudChanged = row.updated_at !== s.lastCloudAt;
     if(WAS_PRISTINE && !s.lastCloudAt){ syncApplyCloud(row); return; }          // nieuw apparaat: gewoon downloaden
+    if(syncEmpty(state) && !syncEmpty(row.state)){ syncApplyCloud(row); return; } // dit apparaat heeft (nog) geen gegevens: nooit de cloud leegmaken
     if(!localChanged && !cloudChanged){ syncSetMsg('☁ Gesynchroniseerd '+syncTime()); return; }
     if(!localChanged && cloudChanged){ syncApplyCloud(row); return; }
     if(localChanged && !cloudChanged){ await syncPush(row,false); return; }
@@ -4807,6 +4808,16 @@ function syncSoon(){
   if(!fbConfigured() || SYNC.conflict) return; const s = syncLoad(); if(!s.auth) return;
   clearTimeout(SYNC.timer); SYNC.timer = setTimeout(()=>syncNow(), 4000);
 }
+/* wat zit er in een stand (voor keuzes en herstel): dagen, trainingen, runs, Garmin */
+function syncSummary(st){
+  const cb = (st && st.currentBlock) || {}, rp = (st && st.runningProgram) || {}, g = (st && st.garmin) || {};
+  const n = { dagen:Object.keys(cb.dailyLogs||{}).length, trainingen:(rp.sessions||[]).length, runs:(cb.coachRuns||[]).length,
+              kracht:(cb.strengthSessions||[]).length, garmin:(g.activities||[]).length };
+  n.text = `${n.dagen} dagen · ${n.trainingen} hardlooptrainingen · ${n.runs} Coach-runs · ${n.kracht} krachtsessies · ${n.garmin} Garmin-activiteiten`;
+  return n;
+}
+/* een stand zonder eigen gegevens mag nooit een stand mét gegevens in de cloud overschrijven */
+function syncEmpty(st){ const n = syncSummary(st); return !n.dagen && !n.trainingen && !n.runs && !n.kracht && !n.garmin && !((st && st.currentBlock && st.currentBlock.walks)||[]).length; }
 function syncShowConflict(row){
   if($('#syncConflict')) return;
   const when = new Date(row.updated_at).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
@@ -4814,6 +4825,8 @@ function syncShowConflict(row){
   d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
   d.innerHTML = `<div class="card" style="max-width:440px;background:var(--card)"><h3>Twee verschillende versies</h3>
     <p class="small">Er is op dit apparaat én in de cloud iets gewijzigd (cloud: ${esc(when)}, ${esc(row.device||'onbekend apparaat')}). Kies welke je wilt houden. De andere versie wordt bewaard, dus niets gaat verloren.</p>
+    <div class="week-track small" style="margin:0 0 10px"><div class="row"><span class="k">In de cloud</span><span class="v" style="white-space:normal;font-weight:500">${esc(syncSummary(row.state).text)}</span></div>
+      <div class="row"><span class="k">Op dit apparaat</span><span class="v" style="white-space:normal;font-weight:500">${esc(syncSummary(state).text)}</span></div></div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <button class="btn primary" data-sync="use-cloud">Cloud-versie gebruiken (deze wijzigingen worden eerst als bestand gedownload)</button>
       <button class="btn" data-sync="use-local">Deze versie gebruiken (de cloud-versie wordt bewaard)</button>
@@ -4852,12 +4865,47 @@ function syncCardHTML(){
   return `<div class="card"><h3>Synchronisatie</h3>
     <p class="small">Ingelogd als <b>${esc(s.auth.email||'')}</b>. Wijzigingen worden automatisch gedeeld.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm primary" data-sync="now">Nu synchroniseren</button><button class="btn sm" data-sync="logout">Uitloggen</button></div>
-    <p class="tny muted" id="syncStatus" style="margin-top:6px">${esc(SYNC.msg)}</p></div>`;
+    <p class="tny muted" id="syncStatus" style="margin-top:6px">${esc(SYNC.msg)}</p>
+    <details class="acc" style="margin-top:10px"><summary>Eerdere cloudversie terugzetten</summary><div class="acc-body" id="syncVersions">${syncVersionsHTML()}</div></details></div>`;
+}
+/* bewaarde cloudversies (de laatste 20) tonen en er één terugzetten; de huidige versie wordt eerst zelf bewaard */
+function syncVersionsHTML(){
+  if(!SYNC.versions) return `<p class="tny muted">Atempo bewaart in de cloud de laatste 20 versies (ook altijd bij een keuze tussen twee versies).</p><button class="btn sm" data-sync="versions">Bewaarde versies tonen</button>`;
+  const rows = Object.entries(SYNC.versions).sort((a,b)=> b[0].localeCompare(a[0])).map(([k,v])=>{
+    let sm = null; try{ sm = syncSummary(JSON.parse(v.state)); }catch(e){}
+    const when = new Date(v.saved_at || Number(k)).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    return `<div class="row"><span class="k">${esc(when)} <span class="tny muted">${esc(v.device||'')}</span><br><span class="tny muted">${sm ? esc(sm.text) : 'onleesbaar'}</span></span><span class="v">${sm ? `<button class="btn sm" data-sync="restore|${esc(k)}">Terugzetten</button>` : ''}</span></div>`;
+  });
+  return rows.length ? `<div class="week-track">${rows.join('')}</div>` : '<p class="tny muted">Er zijn nog geen bewaarde versies.</p>';
+}
+async function syncLoadVersions(){
+  const s = syncLoad(); if(!s.auth) return;
+  try { SYNC.versions = (await fbDb('trainingsplan/'+s.auth.uid+'/versies')) || {}; }
+  catch(e){ syncSetMsg('☁ Versies ophalen mislukt: '+e.message); return; }
+  const el = $('#syncVersions'); if(el) el.innerHTML = syncVersionsHTML();
+}
+async function syncRestoreVersion(key){
+  const v = SYNC.versions && SYNC.versions[key]; if(!v) return;
+  let st; try { st = JSON.parse(v.state); } catch(e){ alert('Deze versie is beschadigd en kan niet worden teruggezet.'); return; }
+  const when = new Date(v.saved_at || Number(key)).toLocaleString('nl-NL',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+  if(!confirm('Versie van '+when+' terugzetten?\n\n'+syncSummary(st).text+'\n\nDe huidige cloudversie wordt eerst bewaard, dus die kun je later ook weer terugzetten.')) return;
+  const s = syncLoad(), uid = s.auth.uid, now = new Date().toISOString();
+  SYNC.busy = true; syncSetMsg('☁ Versie terugzetten…');
+  try {
+    const cur = await fbGetCurrent(uid);
+    if(cur) await fbDb('trainingsplan/'+uid+'/versies/'+Date.now(), 'PUT', { state:JSON.stringify(cur.state), saved_at:now, device:cur.device||null });
+    const merged = mergeState(defaultState(), st); merged.meta.updatedAt = now;
+    await fbDb('trainingsplan/'+uid+'/current', 'PATCH', { state:JSON.stringify(merged), updated_at:now, device:syncDevice() });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    syncMarkers(now, merged.meta.updatedAt);
+    location.reload();
+  } catch(e){ SYNC.busy = false; syncSetMsg('☁ Terugzetten mislukt: '+e.message+' — er is niets veranderd.'); }
 }
 document.addEventListener('click', e=>{
   const b = e.target.closest && e.target.closest('[data-sync]'); if(!b) return;
   const a = b.dataset.sync;
   if(a==='login') syncLogin(); else if(a==='logout') syncLogout(); else if(a==='now') syncNow();
+  else if(a==='versions') syncLoadVersions(); else if(a.startsWith('restore|')) syncRestoreVersion(a.slice(8));
   else if(a==='use-cloud' || a==='use-local' || a==='later') syncResolve(a);
 });
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') syncNow(); });
