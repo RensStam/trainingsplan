@@ -342,7 +342,8 @@ pre.sketch{overflow:auto;background:#EDF2F5;padding:12px;border-radius:10px;font
 .run-level{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--card)}
 .run-level.cur{border-color:var(--green);background:var(--mint)}
 .run-level-top{margin-bottom:2px}
-.run-level:has(details.acc[open]){grid-column:1/-1}
+.run-level.editing{grid-column:1/-1}
+.run-level-edit{margin-top:10px;padding-top:10px;border-top:1px solid var(--line2)}
 .run-week{margin:12px 0}
 .run-week-h{font-weight:800;font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 .run-cal{display:flex;gap:12px;border:1px solid var(--line);border-radius:10px;padding:8px 11px;margin:5px 0;background:var(--card)}
@@ -362,7 +363,19 @@ pre.sketch{overflow:auto;background:#EDF2F5;padding:12px;border-radius:10px;font
 .run-ol{padding-left:20px;margin:6px 0}.run-ol li{margin:4px 0}
 @media(max-width:560px){ .run-cal{flex-direction:column;gap:2px}.run-cal-d{min-width:0}.run-actions.big .btn{flex:1 1 100%} }
 /* gekozen knop (trainingsdagen, niveau van een training) duidelijk zichtbaar */
-.run-actions .btn.active{background:var(--green);border-color:var(--green);color:#fff}
+.run-tabs .btn.active,.run-actions .btn.active{background:var(--green);border-color:var(--green);color:#fff}
+/* kalender: elke dag van de week; rustdagen rustig, trainingen uitklapbaar */
+.run-day{display:block;border:1px solid var(--line);border-radius:10px;margin:4px 0;background:var(--card)}
+.run-day>summary,.run-day.rest{display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 11px;list-style:none;cursor:pointer;background:transparent}
+.run-day>summary::-webkit-details-marker{display:none}
+.run-day.rest{background:transparent;border-color:var(--line2);color:var(--muted);padding:5px 11px;cursor:default;font-size:13.5px}
+.run-day.done{border-left:4px solid #5aa57a}
+.run-day.skipped,.run-day.cancelled{opacity:.7}
+.run-day-d{font-size:12px;font-weight:700;color:var(--muted)}
+.run-day-s{display:flex;gap:4px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.run-day>.acc-body{padding:2px 11px 10px}
+@media(max-width:560px){ .run-day>summary,.run-day.rest{grid-template-columns:60px minmax(0,1fr)} .run-day-s{grid-column:2;justify-content:flex-start} }
+details.acc.run-day>summary::before{content:none}   /* geen uitklappijltje: de hele regel is de knop */
 /*__HARDLOPEN_CSS_END__*/
 /*__ATEMPO_CSS_BEGIN__*/
 
@@ -453,7 +466,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.5.0";
+const APP_VERSION = "block2-2.5.2";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -5186,9 +5199,7 @@ function runViewOverview(){
         <div class="small">${esc(runShortStructure(nx.steps))} · ${esc(RUN_INTENS[nx.intensity]||'Rustig tempo')}</div></div></div>
       ${runTimelineSVG(nx.steps, 34)}${runLegend()}
       ${runRestWarnings(nx).map(w=>`<div class="warnline">${esc(w)}</div>`).join('')}
-      <div class="run-actions big">
-        ${runBtn('view|'+nx.id,'Training bekijken','primary')}${runBtn('edit|'+nx.id,'Training aanpassen')}${runBtn('export|'+nx.id,'Training exporteren')}</div>
-      ${RUI.viewOpen===nx.id ? `<div class="run-detail">${runTotalsLine(nx.steps,nx.intensity,nx.target)}<div class="small">${esc(runDescribeSteps(nx.steps))}</div>${nx.notes?`<div class="small muted">${esc(nx.notes)}</div>`:''}</div>`:''}
+      <div class="run-detail">${runTotalsLine(nx.steps,nx.intensity,nx.target)}<div class="small">${esc(runDescribeSteps(nx.steps))}</div>${nx.notes?`<div class="small muted">${esc(nx.notes)}</div>`:''}</div>
       ${nx.date<=today ? `<div class="run-detail">${runResultPicker(nx)}</div>`:''}`;
   } else {
     const sug = runSuggestionDates(today, 3)[0], lvl = runCurrentTpl();
@@ -5259,38 +5270,44 @@ function runLevelEditor(t,i){
 function runViewProgram(){
   const rp = RP(), today = todayISO(), cur = runCurrentTpl(); let h = '';
   /* niveaus */
-  h += `<div class="card"><h3>Niveaus <span class="sub">kies, plan in of pas aan</span></h3><div class="run-ladder">`;
+  /* niveaus: standaard ingeklapt (less is more); open na toevoegen/dupliceren van een niveau */
+  h += `<details class="acc run-levels" ${RUI.manage?'open':''}><summary>Niveaus <span class="tny muted">· huidig: ${esc(cur.name)} — ${esc(runShortStructure(runStepsFromParams(cur)))} · ${runMinLabel(runTotals(runStepsFromParams(cur)).total)}</span></summary><div class="acc-body"><div class="run-ladder">`;
   const planDay = runSuggestionDates(today,6)[0] || addDays(today,1);     // eerstvolgende vrije trainingsdag
   rp.templates.forEach((t,idx)=>{
     const steps = runStepsFromParams(t), T = runTotals(steps), isCur = t.id===cur.id;
-    h += `<div class="run-level ${isCur?'cur':''}"><div class="run-level-top"><b>${esc(t.name)}</b>${t.label?` <span class="tny muted">${esc(t.label)}</span>`:''}${isCur?' <span class="pill done">huidig</span>':''}</div>
+    const editing = RUI.manage===t.id;
+    h += `<div class="run-level ${isCur?'cur':''} ${editing?'editing':''}"><div class="run-level-top"><b>${esc(t.name)}</b>${t.label?` <span class="tny muted">${esc(t.label)}</span>`:''}${isCur?' <span class="pill done">huidig</span>':''}</div>
       <div class="small">${esc(runShortStructure(steps))} · ${runMinLabel(T.total)}</div>${runTimelineSVG(steps, 20)}
-      <div class="run-actions">${isCur?'':runBtn('level|'+t.id+'|handmatig','Gebruik dit niveau','sm')}${runBtn('plan|'+planDay+'|'+t.id,'Inplannen op '+esc(runDateShort(planDay)),'sm')}</div>
-      <details class="acc" ${RUI.manage===t.id?'open':''}><summary>Aanpassen</summary><div class="acc-body">${runLevelEditor(t,idx)}</div></details></div>`;
+      <div class="run-actions">${isCur?'':runBtn('level|'+t.id+'|handmatig','Gebruik dit niveau','sm')}${runBtn('plan|'+planDay+'|'+t.id,'Inplannen op '+esc(runDateShort(planDay)),'sm')}${runBtn('tplEdit|'+t.id, editing?'Klaar met aanpassen':'Niveau aanpassen', 'sm'+(editing?' active':''))}</div>
+      ${editing ? `<div class="run-level-edit">${runLevelEditor(t,idx)}</div>` : ''}</div>`;
   });
-  h += `</div><div class="run-actions">${runBtn('tplAdd','+ Nieuw niveau toevoegen','sm')}</div>${runLegend()}</div>`;
+  h += `</div><div class="run-actions">${runBtn('tplAdd','+ Nieuw niveau toevoegen','sm')}</div>${runLegend()}</div></details>`;
 
   /* kalender */
   h += `<div class="card"><h3>Kalender</h3>
-    <p class="tny muted">Voorstellen zijn geen verplichting. Er schuift niets vanzelf op: een gemiste training blijft zichtbaar als gemist.</p>`;
+    <p class="tny muted">Elke dag zonder training is een rustdag. Alleen trainingen gaan naar Intervals.icu en Garmin. Tik op een training om te verzetten, over te slaan of aan te passen.</p>`;
   const sugg = new Set(runSuggestionDates(addDays(today,-7), (rp.settings.planWeeksAhead||2)+1));
   const wk0 = runMonday(addDays(today,-7));
   for(let w=0; w<(rp.settings.planWeeksAhead||2)+2; w++){
     const mon = addDays(wk0, w*7), sun = addDays(mon,6);
     let rows = '';
     for(let i=0;i<7;i++){
-      const d = addDays(mon,i), ss = runSessionsOn(d), rest = rp.restDays[d];
+      const d = addDays(mon,i), ss = runSessionsOn(d), dl = esc(runDateShort(d)), past = d<today;
       ss.forEach(s=>{
         const T = runTotals(s.steps);
-        rows += `<div class="run-cal ${s.status}"><div class="run-cal-d">${esc(runDateShort(d))}</div><div class="run-cal-b"><b>${esc(s.name)}</b> ${runStatusPill(s)}${coachPill(s)} <span class="tny muted">${runMinLabel(T.total)} · ${esc(runShortStructure(s.steps))}</span>
-          <div class="run-actions">${s.status==='planned'?runBtn('edit|'+s.id,'Bewerken','sm')+`<span class="run-move"><input type="date" data-bind="__run.ses.${s.id}.date" value="${esc(s.date)}" aria-label="Verplaats naar"></span>`+runBtn('skip|'+s.id,'Overslaan','sm')+runBtn('cancel|'+s.id,'Annuleren','sm'):''}
-          ${s.status==='skipped'||s.status==='cancelled'?runBtn('reopen|'+s.id,'Weer inplannen','sm'):''}${s.status==='done'?runBtn('edit|'+s.id,'Bekijken','sm'):''}${s.status!=='done'?runBtn('del|'+s.id,'Verwijderen','sm danger'):''}</div></div></div>`;
+        const acts = s.status==='planned'
+          ? runBtn('edit|'+s.id,'Aanpassen','sm')+`<span class="run-move"><input type="date" data-bind="__run.ses.${s.id}.date" value="${esc(s.date)}" aria-label="Verzetten naar"></span>`+runBtn('skip|'+s.id,'Overslaan','sm')+runBtn('cancel|'+s.id,'Annuleren','sm')+runBtn('del|'+s.id,'Verwijderen','sm danger')
+          : s.status==='done' ? runBtn('edit|'+s.id,'Bekijken','sm')
+          : runBtn('reopen|'+s.id,'Weer inplannen','sm')+runBtn('del|'+s.id,'Verwijderen','sm danger');
+        rows += `<details class="acc run-day ${s.status}"><summary><span class="run-day-d">${dl}</span><span class="run-day-b"><b>${esc(s.name.replace(/ – .*/,''))}</b> <span class="tny muted">${runMinLabel(T.total)} · ${esc(runShortStructure(s.steps))}</span></span><span class="run-day-s">${runStatusPill(s)}${coachPill(s)}</span></summary>
+          <div class="acc-body"><div class="run-actions">${acts}</div></div></details>`;
       });
-      if(rest) rows += `<div class="run-cal rest"><div class="run-cal-d">${esc(runDateShort(d))}</div><div class="run-cal-b"><b>Rustdag</b> ${runBtn('rest|'+d,'Markering weg','sm')}</div></div>`;
-      if(sugg.has(d) && !ss.length && !rest) rows += `<div class="run-cal sug"><div class="run-cal-d">${esc(runDateShort(d))}</div><div class="run-cal-b"><span class="muted">Voorstel — ${esc(cur.name)}</span>
-          <div class="run-actions">${runBtn('plan|'+d+'|'+cur.id,'Inplannen','sm')}${runBtn('rest|'+d,'Rustdag','sm')}</div></div></div>`;
+      if(!ss.length){
+        const canPlan = sugg.has(d) && !past;
+        rows += `<div class="run-day rest"><span class="run-day-d">${dl}</span><span class="run-day-b">Rustdag${canPlan?` <span class="tny muted">· voorstel: ${esc(cur.name)}</span>`:''}</span><span class="run-day-s">${canPlan?runBtn('plan|'+d+'|'+cur.id,'+ Inplannen','sm'):''}</span></div>`;
+      }
     }
-    h += `<div class="run-week"><div class="run-week-h">Week ${runIsoWeek(mon)} · ${esc(fmt(mon,{day:'numeric',month:'long'}))} t/m ${esc(fmt(sun,{day:'numeric',month:'long'}))}</div>${rows||'<div class="tny muted">Niets gepland.</div>'}</div>`;
+    h += `<div class="run-week"><div class="run-week-h">Week ${runIsoWeek(mon)} · ${esc(fmt(mon,{day:'numeric',month:'long'}))} t/m ${esc(fmt(sun,{day:'numeric',month:'long'}))}</div>${rows}</div>`;
   }
   h += `<div class="run-actions">${runBtn('exportPeriod','Komende 2 weken voor Intervals.icu (.zip)','sm')}<span class="tny muted" style="align-self:center">tijdelijk, tot de draadloze koppeling werkt</span></div>`;
   h += `<div class="run-actions">${runBtn('planAhead','Vul de voorstellen in ('+(rp.settings.planWeeksAhead||2)+' weken, '+esc(cur.name)+')','sm')}
@@ -5576,10 +5593,9 @@ function runAct0(act, args, el){
       if(!confirm('Niveau "'+t.name+'" verwijderen?')) return;
       if(!confirm('Weet je het zeker? "'+t.name+'" wordt definitief verwijderd.')) return;
       rp.templates = rp.templates.filter(x=>x.id!==t.id); if(rp.settings.currentTemplateId===t.id) rp.settings.currentTemplateId = rp.templates[0].id; RUI.manage = null; break; }
+    case 'tplEdit': RUI.manage = RUI.manage===args[0] ? null : args[0]; break;
     case 'tplAdd': { const base = runCurrentTpl(); const c = JSON.parse(JSON.stringify(base)); c.id = 'T'+runId().slice(1); c.name = 'Nieuw niveau'; c.label = ''; rp.templates.push(c); RUI.manage = c.id; runMsg('Nieuw niveau toegevoegd (kopie van het huidige). Pas het aan onder "Aanpassen".'); break; }
-    case 'view': RUI.viewOpen = RUI.viewOpen===args[0] ? null : args[0]; break;
     case 'edit': RUI.selId = args[0]; RUI.tab = 'edit'; break;
-    case 'export': RUI.selId = args[0]; RUI.tab = 'garmin'; break;
     case 'exportFit': { const sess = runSes(args[0]); const r = fitExportSession(sess); if(!r.ok) return runMsg('Export geblokkeerd: '+r.errors.join('; '),'err'); dl(new Blob([r.bytes],{type:'application/octet-stream'}), 'Hardlopen_'+fitAscii(sess.name,20).replace(/\s+/g,'_')+'_'+sess.date+'.fit'); runMsg('Garmin-workout gedownload ('+r.size+' bytes).'); break; }
     case 'exportPeriod': { const r = fitExportPeriod(14); if(!r.ok) return runMsg(r.errors.join('; '), 'err');
       dl(new Blob([r.zip],{type:'application/zip'}), 'Atempo_komende_2_weken_'+today+'.zip');
@@ -5594,7 +5610,7 @@ function runAct(act, args, el){ runAct0(act, args, el); saveState(); renderCurre
 document.addEventListener('click', e=>{
   const ro = e.target.closest && e.target.closest('[data-run-open]'); if(ro){ e.preventDefault(); if(ro.dataset.runOpen) RUI.selId = ro.dataset.runOpen; RUI.tab = 'overview'; RUI.msg = ''; showView('running'); return; }
   const ra = e.target.closest && e.target.closest('[data-run-open-act]'); if(ra){ e.preventDefault(); const a = runActivity(ra.dataset.runOpenAct); const same = a ? runSessionsOn(a.date)[0] : null; if(same) RUI.selId = same.id; RUI.tab = 'garmin'; RUI.msg = ''; showView('running'); return; }
-  const tab = e.target.closest && e.target.closest('[data-run-tab]'); if(tab){ RUI.tab = tab.dataset.runTab; RUI.msg = ''; renderCurrent(); window.scrollTo({top:0}); return; }
+  const tab = e.target.closest && e.target.closest('[data-run-tab]'); if(tab){ RUI.tab = tab.dataset.runTab; RUI.msg = ''; const v = document.getElementById('view-running'); if(v) v.innerHTML = ''; /* geen open/dicht-stand meenemen naar een ander tabblad */ renderCurrent(); window.scrollTo({top:0}); return; }
   const b = e.target.closest && e.target.closest('[data-run-act]'); if(!b) return;
   e.preventDefault(); const p = b.dataset.runAct.split('|'); runAct(p[0], p.slice(1), b);
 });
@@ -5717,7 +5733,9 @@ window.addEventListener('load', ()=>{ coachHandleRedirect().then(back=>{ if(back
 function coachText(s){
   const dur = sec => { const m = Math.floor(sec/60), r = sec%60; return m && r ? m+'m'+r+'s' : m ? m+'m' : r+'s'; };
   const tg = s.target||{}, runTg = tg.type==='hr' && num(tg.low) ? ' '+tg.low+'-'+tg.high+'bpm HR' : (tg.type==='pace' && num(tg.low) ? ' '+secToPace(tg.low)+'-'+secToPace(tg.high)+'/km Pace' : '');
-  const line = (t, sec) => '- '+RUN_STEP[t].nl+' '+dur(sec)+(t==='run' ? runTg : '');
+  // stapsoort expliciet meegeven: zonder dit leidt Intervals.icu de soort af uit de hartslagzone (alles Z1 → alles dezelfde soort op het horloge)
+  const kind = { warmup:'warmup', run:'active', walk:'recovery', cooldown:'cooldown' };
+  const line = (t, sec) => '- '+RUN_STEP[t].nl+' '+dur(sec)+(t==='run' ? runTg : '')+' intensity='+kind[t];
   const L = [];
   runCompress(s.steps).forEach(g=>{
     if(g.kind==='repeat'){ L.push('', g.count+'x', line('run', g.items[0].sec), line('walk', g.items[1].sec)); }
