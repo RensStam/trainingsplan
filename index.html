@@ -466,7 +466,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.5.5";
+const APP_VERSION = "block2-2.5.6";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -1837,7 +1837,7 @@ function getTodayContext(d){
 function todayCards(d){
   const set = new Set();
   if(ui.addOn===d && ui.addType) set.add(ui.addType);
-  if(allRunRecords().some(r=>r.date===d)) set.add('coach');
+  if((CB.coachRuns||[]).some(r=>r.date===d)) set.add('coach');   // alleen echte (handmatige/oude) Coach-runs; trainingen uit het hardloopprogramma hebben hun eigen blok
   CB.strengthSessions.filter(s=>s.date===d).forEach(s=> set.add(s.session==='A'?'strengthA':'strengthB'));
   if(CB.walks.some(w=>w.date===d)) set.add('longwalk');
   if((CB.learningSessions||[]).some(x=>x.date===d)) set.add('learning');
@@ -4375,6 +4375,25 @@ function garminCommitImport(){
 function garminAutoCoachOn(){ return CB.garminAutoCoach !== false && !runReplacesCoach(); }
 /* Garmin-activiteit -> Coach-run (idempotent op garminExternalId; handmatige velden blijven).
    Zoekt eerst een bestaande run om te koppelen (zelfde dag, ±0,5 km, zonder koppeling of met kapotte koppeling). */
+/* EENMALIG HERSTEL (3 nov 2026): op 1 nov 19:16 zijn 10 oude Garmin Coach-runs per ongeluk als "Niveau A"
+   in het hardloopprogramma gezet (knop "Voeg toe als gedane training"). Ze worden weer gewone Coach-runs: een
+   Coach-run die er op die dag al was wordt gekoppeld en met de Garmin-waarden bijgewerkt (zo verdwijnt ook de
+   verkeerde duur van 28 sep), anders wordt de run uit de Garmin-activiteit aangemaakt. Draait alleen als zulke
+   trainingen gevonden worden; daarna niets meer. Garmin-gegevens zelf veranderen niet. */
+function fixOldRunsAsLevelA(){
+  const rp = state.runningProgram; if(!rp) return false;
+  const bad = rp.sessions.filter(s=> s.status==='done' && s.addedAfterwards && s.garminExternalId && s.date<='2026-10-31' && /^2026-11-01T19:1[5-7]/.test(s.createdAt||''));
+  let n = 0;
+  for(const s of bad){
+    const a = (state.garmin.activities||[]).find(x=> x.externalId===s.garminExternalId); if(!a) continue;
+    const same = CB.coachRuns.find(r=> r.date===a.date && !r.garminExternalId);
+    if(same) same.garminExternalId = a.externalId;
+    garminApplyRun(a);
+    rp.sessions = rp.sessions.filter(x=> x.id!==s.id); n++;
+  }
+  if(n){ state.meta.fixes = [...(state.meta.fixes||[]), 'oude-runs-niveauA-'+n]; }
+  return n>0;
+}
 function garminFindAdopt(a){
   const near = x => x.date === a.date && (a.distanceKm == null || x.distanceKm == null || Math.abs(num(x.distanceKm) - a.distanceKm) <= 0.5);
   return CB.coachRuns.find(x=> !x.garminExternalId && near(x))
@@ -4795,9 +4814,9 @@ async function syncNow(retry){
     const cloudChanged = row.updated_at !== s.lastCloudAt;
     if(WAS_PRISTINE && !s.lastCloudAt){ syncApplyCloud(row); return; }          // nieuw apparaat: gewoon downloaden
     if(syncEmpty(state) && !syncEmpty(row.state)){ syncApplyCloud(row); return; } // dit apparaat heeft (nog) geen gegevens: nooit de cloud leegmaken
-    if(!localChanged && !cloudChanged){ syncSetMsg('☁ Gesynchroniseerd '+syncTime()); return; }
+    if(!localChanged && !cloudChanged){ syncSetMsg('☁ Gesynchroniseerd '+syncTime()); if(fixOldRunsAsLevelA()){ saveState(); renderCurrent(); } return; }
     if(!localChanged && cloudChanged){ syncApplyCloud(row); return; }
-    if(localChanged && !cloudChanged){ await syncPush(row,false); return; }
+    if(localChanged && !cloudChanged){ await syncPush(row,false); if(fixOldRunsAsLevelA()){ saveState(); renderCurrent(); } return; }
     SYNC.conflict = row; syncShowConflict(row);                                    // beide gewijzigd: gebruiker kiest
     syncSetMsg('☁ Kies welke versie je wilt houden');
   }catch(e){
@@ -5898,6 +5917,7 @@ function coachSettingsHTML(){
 /* start */
 { const bt = $('#buildTag'); if(bt) bt.textContent = `${APP_VERSION} (${APP_BUILD}) · geladen ${new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`; }
 ui.weekIdx = Math.max(0, weekIndexFor(ui.date));
+if(!(typeof syncLoggedIn==='function' && syncLoggedIn()) && fixOldRunsAsLevelA()) saveState();
 renderCurrent();
 bkInit();
 syncFootUpdate();
