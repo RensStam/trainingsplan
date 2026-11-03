@@ -466,7 +466,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.5.4";
+const APP_VERSION = "block2-2.5.5";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -5330,7 +5330,7 @@ function runViewProgram(){
       <div class="run-actions">${isCur?'':runBtn('level|'+t.id+'|handmatig','Gebruik dit niveau','sm')}${runBtn('plan|'+planDay+'|'+t.id,'Inplannen op '+esc(runDateShort(planDay)),'sm')}${runBtn('tplEdit|'+t.id, editing?'Klaar met aanpassen':'Niveau aanpassen', 'sm'+(editing?' active':''))}</div>
       ${editing ? `<div class="run-level-edit">${runLevelEditor(t,idx)}</div>` : ''}</div>`;
   });
-  h += `</div><div class="run-actions">${runBtn('tplAdd','+ Nieuw niveau toevoegen','sm')}</div>${runLegend()}</div></details>`;
+  h += `</div><div class="run-actions">${runBtn('tplAdd','+ Nieuw niveau toevoegen','sm')}</div>${runLegend()}${rp.levelLog.length?`<details class="acc"><summary>Niveau-geschiedenis</summary><div class="acc-body"><ul class="small">${rp.levelLog.slice().reverse().map(l=>`<li>${esc(fmt(l.date,{day:'numeric',month:'long'}))}: ${esc(l.from||'—')} → ${esc(l.to)} (${esc(l.reason||'')})</li>`).join('')}</ul></div></details>`:''}</div></details>`;
 
   /* kalender */
   h += `<div class="card"><h3>Kalender</h3>
@@ -5358,7 +5358,6 @@ function runViewProgram(){
     }
     h += `<div class="run-week"><div class="run-week-h">Week ${runIsoWeek(mon)} · ${esc(fmt(mon,{day:'numeric',month:'long'}))} t/m ${esc(fmt(sun,{day:'numeric',month:'long'}))}</div>${rows}</div>`;
   }
-  h += `<div class="run-actions">${runBtn('exportPeriod','Komende 2 weken voor Intervals.icu (.zip)','sm')}<span class="tny muted" style="align-self:center">tijdelijk, tot de draadloze koppeling werkt</span></div>`;
   h += `<div class="run-actions">${runBtn('planAhead','Vul de voorstellen in ('+(rp.settings.planWeeksAhead||2)+' weken, '+esc(cur.name)+')','sm')}
     ${rp.settings.paused?runBtn('resume','Hervatten','sm'):runBtn('pause','Programma pauzeren','sm')}${runBtn('shift','Komende trainingen verschuiven…','sm')}${runBtn('rebuild','Opnieuw samenstellen…','sm')}</div></div>`;
 
@@ -5458,14 +5457,8 @@ function runViewGarmin(){
   const pick = runSessionPicker(), s = runSes(RUI.selId);
   h += `<div class="card"><h3>Garmin & resultaten</h3>${pick||'<p class="small muted">Er is nog geen training. Plan er een in bij Trainingsprogramma.</p>'}</div>`;
   if(s){
-    const T = runTotals(s.steps), fit = RUN_FIT_VALIDATED ? fitExportSession(s) : { ok:false, errors:['Export staat uit'] };
+    const T = runTotals(s.steps);
     h += `<div class="card"><h3>${esc(s.name)} · ${esc(runDateShort(s.date))} ${runStatusPill(s)}</h3>${runTimelineSVG(s.steps,34)}${runLegend()}${runTotalsLine(s.steps,s.intensity,s.target)}
-      <div class="notice" style="margin:10px 0"><b>Handigst: alle niveaus in één keer op je horloge</b><br><span class="small">Eén keer doen, daarna staan Niveau A t/m H gewoon in je horloge en hoef je niets meer in Garmin Connect in te typen.</span>
-        <div class="run-actions big">${runBtn('exportAllLevels','Alle niveaus (A–H) downloaden als zip','primary')}</div></div>
-      <h4>Alleen deze training exporteren</h4>
-      <div class="run-actions big">${fit.ok ? runBtn('exportFit|'+s.id,'Garmin-workout (.fit) downloaden','primary') : `<span class="warnline" style="margin:0">Export geblokkeerd: ${esc((fit.errors||[]).join('; '))}</span>`}</div>
-      ${fit.ok?`<div class="tny muted">Het bestand (${fit.size} bytes) is zojuist door de ingebouwde controle gekomen (CRC, structuur, stappen en duur). <b>Status:</b> technisch gevalideerd, en op jouw Forerunner 165 geladen (op 1 november 2026 stonden Niveau A t/m H onder Workouts). Controleer bij je eerste run of de stappen en tijden op het horloge kloppen. Lukt het laden niet, lees dan hieronder de USB-uitleg nog eens.</div>
-      <details class="acc"><summary>Zo zet je het .fit-bestand op je horloge (USB)</summary><div class="acc-body"><ol class="small run-ol"><li>Pak de zip uit (rechtermuisknop › Alles uitpakken). Sluit je Forerunner 165 met de kabel aan op je computer.</li><li>Open het horloge in de Verkenner › map <b>GARMIN</b> › <b>NewFiles</b> (bestaat die niet: probeer de map <b>Workouts</b>).</li><li>Kopieer het .fit-bestand (of bij de zip: alle bestanden — begin desnoods met alleen <b>Niveau_A.fit</b> als test) erin, werp het horloge veilig uit en koppel los. Het horloge verplaatst de bestanden zelf naar <b>Workouts</b>; start het zo nodig opnieuw op.</li><li>Op het horloge: <b>START</b> › <b>Hardlopen</b> › houd <b>UP</b> ingedrukt › <b>Training</b> › <b>Workouts</b> (of <b>Mijn workouts</b>) — daar staan Niveau A t/m H.</li></ol><div class="tny muted">Dit is de route die gebruikers voor veel Garmin-modellen beschrijven; Garmin zelf publiceert deze stappen niet per model. Naam wordt op sommige horloges na 15 tekens afgekapt.</div></div></details>`:''}
       </div>`;
     h += coachCardHTML(s);
     h += `<div class="card"><h3>Resultaat registreren</h3>${runResultPicker(s)}
@@ -5483,49 +5476,9 @@ function runViewGarmin(){
       return `<div class="run-row"><b>${esc(runDateShort(a.date))}</b> · ${a.distanceKm!=null?nl(a.distanceKm)+' km':''} · ${a.durationMin!=null?nl(round(a.durationMin,1))+' min':''}${a.avgHr!=null?' · gem. HR '+a.avgHr:''}
         <div class="run-actions">${opts.map(x=>runBtn('link|'+x.id+'|'+a.externalId,'Koppel aan '+esc(runDateShort(x.date))+' '+esc(x.name),'sm')).join('')}${runBtn('addDoneFrom|'+a.externalId,'Voeg toe als gedane training','sm')}</div></div>`; }).join('')}</div>`;
 
-  /* voortgang */
-  h += runProgressHTML();
 
   return h;
 }
-/* ---------- voortgang ---------- */
-function runProgressRows(){
-  const rows = [];     // één rij per hardloopsessie: eerst historische Coach-runs, dan de runs uit dit programma
-  (CB.coachRuns||[]).filter(r=>r.done===true).forEach(r=> rows.push({ date:r.date, src:'coach', km:num(r.distanceKm), pace:r.avgPace||null, hr:num(r.avgHr), min:num(r.totalMin) }));
-  runDoneSessions().forEach(s=>{ const r = runResultOf(s); if(r && !r.missing) rows.push({ date:s.date, src:'programma', km:r.distanceKm??null, pace:r.avgPace||null, hr:num(r.avgHr), min:r.durationMin??null, id:s.id }); });
-  return rows.sort((a,b)=>a.date.localeCompare(b.date));
-}
-function runProgressHTML(){
-  const rp = RP(), rows = runProgressRows(), done = runDoneSessions();
-  if(!rows.length && !done.length) return `<div class="card"><h3>Voortgang</h3><p class="small muted">Nog geen hardloopgegevens. Zodra je trainingen registreert, verschijnt hier jouw ontwikkeling — alleen met werkelijk geregistreerde waarden.</p></div>`;
-  const series = fn => rows.map(r=>({ x:r.date, y:fn(r) })).filter(p=>p.y!=null);
-  const ch = (t, rr, o) => rr.length>=2 ? `<div class="chart-wrap"><h4>${esc(t)}</h4>${lineChart(rr,o)}</div>` : `<div class="chart-wrap"><h4>${esc(t)}</h4><div class="small muted">Nog te weinig meetpunten (${rr.length}).</div></div>`;
-  // per week
-  const byWeek = {}; rows.forEach(r=>{ const w = runMonday(r.date); (byWeek[w] = byWeek[w]||[]).push(r); });
-  const weeks = Object.keys(byWeek).sort().slice(-10).reverse();
-  const avg = a => a.length ? Math.round(a.reduce((x,y)=>x+y,0)/a.length) : null;
-  const painPts = [];
-  Object.entries(rp.checks).forEach(([d,c])=>{ if(num(c.painLeft)!=null) painPts.push({ x:d, y:num(c.painLeft) }); });
-  painPts.sort((a,b)=>a.x.localeCompare(b.x));
-  const painDur = done.filter(s=>s.post && num(s.post.painDuring)!=null).map(s=>({ x:s.date, y:num(s.post.painDuring) }));
-  return `<div class="card"><h3>Voortgang</h3>
-    <div class="run-kpis"><div class="rc"><b>${esc(runCurrentTpl().name)}</b><span>huidig niveau</span></div><div class="rc"><b>${done.length}</b><span>uitgevoerd in dit programma</span></div><div class="rc"><b>${rows.length}</b><span>hardloopsessies totaal (incl. historie)</span></div></div>
-    <div class="grid cols-2">
-      ${ch('Afstand per training (km)', series(r=>r.km), { color:'#276b52', unit:'km' })}
-      ${ch('Looptempo (min/km) — lager is sneller', series(r=>paceToSec(r.pace)), { color:'#7a5a1c', invertLabel:true, unit:'min/km' })}
-      ${ch('Gemiddelde hartslag (bpm)', series(r=>r.hr), { color:'#3c6f91', unit:'bpm' })}
-      ${ch('Pijn linkerbeen vóór training (0–10)', painPts, { color:'#a04040' })}
-      ${ch('Pijn tijdens hardlopen (0–10)', painDur, { color:'#c0392b' })}
-    </div>
-    <h4>Per week</h4><div class="table-wrap"><table class="data"><thead><tr><th>Week</th><th class="num">Trainingen</th><th class="num">Totale duur</th><th class="num">Afstand</th><th class="num">Gem. hartslag</th></tr></thead><tbody>
-      ${weeks.map(w=>{ const a = byWeek[w], mins = a.map(r=>r.min).filter(x=>x!=null), kms = a.map(r=>r.km).filter(x=>x!=null);
-        return `<tr><td>Wk ${runIsoWeek(w)} · ${esc(fmt(w,{day:'numeric',month:'short'}))}</td><td class="num">${a.length}</td><td class="num">${mins.length?nl(round(mins.reduce((x,y)=>x+y,0),0))+' min':'—'}</td><td class="num">${kms.length?nl(round(kms.reduce((x,y)=>x+y,0),1))+' km':'—'}</td><td class="num">${nl(avg(a.map(r=>r.hr).filter(x=>x!=null)))}</td></tr>`; }).join('')}
-    </tbody></table></div>
-    <p class="tny muted">Alleen werkelijk geregistreerde gegevens. Een gemiste of overgeslagen training telt nergens als achteruitgang; ontbrekende waarden blijven leeg (—).</p>
-    ${rp.levelLog.length?`<details class="acc"><summary>Niveau-geschiedenis</summary><div class="acc-body"><ul class="small">${rp.levelLog.slice().reverse().map(l=>`<li>${esc(fmt(l.date,{day:'numeric',month:'long'}))}: ${esc(l.from||'—')} → ${esc(l.to)} (${esc(l.reason||'')})</li>`).join('')}</ul></div></details>`:''}
-  </div>`;
-}
-
 /* ---------- invoer-verwerking (komt binnen via setByPath voor '__run.*'-velden) ---------- */
 function runSet(parts, raw){
   RUI.msg = ''; const rp = RP(), k = parts[0];
@@ -5644,7 +5597,6 @@ function runAct0(act, args, el){
     case 'tplEdit': RUI.manage = RUI.manage===args[0] ? null : args[0]; break;
     case 'tplAdd': { const base = runCurrentTpl(); const c = JSON.parse(JSON.stringify(base)); c.id = 'T'+runId().slice(1); c.name = 'Nieuw niveau'; c.label = ''; rp.templates.push(c); RUI.manage = c.id; runMsg('Nieuw niveau toegevoegd (kopie van het huidige). Pas het aan onder "Aanpassen".'); break; }
     case 'edit': RUI.selId = args[0]; RUI.tab = 'edit'; break;
-    case 'exportFit': { const sess = runSes(args[0]); const r = fitExportSession(sess); if(!r.ok) return runMsg('Export geblokkeerd: '+r.errors.join('; '),'err'); dl(new Blob([r.bytes],{type:'application/octet-stream'}), 'Hardlopen_'+fitAscii(sess.name,20).replace(/\s+/g,'_')+'_'+sess.date+'.fit'); runMsg('Garmin-workout gedownload ('+r.size+' bytes).'); break; }
     case 'exportPeriod': { const r = fitExportPeriod(14); if(!r.ok) return runMsg(r.errors.join('; '), 'err');
       dl(new Blob([r.zip],{type:'application/zip'}), 'Atempo_komende_2_weken_'+today+'.zip');
       runMsg(r.files.length+' training(en) in de zip: '+r.files.map(f=>f.title).join(', ')+'. In Intervals.icu: Library (boek-icoon) › drie puntjes › Import workout, daarna elke workout naar de datum in de naam slepen.'); break; }
@@ -5910,7 +5862,7 @@ function coachCardHTML(s){
     <div class="run-actions">${coachConnected() ? btn : ''}
       ${st==='sent' ? runBtn('coachSeen|'+s.id+'|gc', i.gcSeen ? 'Toch niet in Garmin Connect' : 'Gezien in Garmin Connect', 'sm') + runBtn('coachSeen|'+s.id+'|watch', i.watchSeen ? 'Toch niet op horloge' : 'Staat op mijn horloge', 'sm') : ''}
       ${st!=='local' ? runBtn('coachRemove|'+s.id, 'Uit Intervals.icu halen', 'sm') : ''}</div>
-    <p class="tny muted">Intervals.icu stuurt alleen de komende ±7 dagen door naar Garmin. De FIT-download hierboven blijft altijd beschikbaar als reserve.</p></div>`;
+    <p class="tny muted">Intervals.icu stuurt alleen de komende ±7 dagen door naar Garmin. Werkt het niet draadloos, dan staan FIT-bestanden voor de kabel bij Data &amp; backup.</p></div>`;
 }
 function coachSettingsHTML(){
   const c = coachSet(), today = todayISO(), wk = addDays(today, 7);
@@ -5934,7 +5886,12 @@ function coachSettingsHTML(){
     <div class="small" style="margin-top:6px">Testtraining (test 2): 5 min opwarmen · 3 min hardlopen · 2 min wandelen · 5 min afkoelen, in beide vormen</div>
     <div class="run-actions"><span class="run-move"><input type="date" id="coachTestDate" value="${esc(c.test ? c.test.date : addDays(today,1))}" aria-label="Datum testtraining"></span>
       ${busy ? '' : runBtn('coachTest','Testtraining sturen','sm')}${c.test ? runBtn('coachTestDel','Testtrainingen verwijderen','sm') : ''}</div>
-    ${c.test ? `<p class="tny muted">Testtrainingen verzonden voor ${esc(runDateShort(c.test.date))}. Laat me weten welke van de twee correct in Garmin Connect en op je horloge staat.</p>` : ''}`;
+    ${c.test ? `<p class="tny muted">Testtrainingen verzonden voor ${esc(runDateShort(c.test.date))}. Laat me weten welke van de twee correct in Garmin Connect en op je horloge staat.</p>` : ''}
+    <details class="acc" style="margin-top:10px"><summary>Reserve: trainingen via de kabel (FIT-bestanden)</summary><div class="acc-body">
+      <p class="tny muted">Alleen nodig als de draadloze route via Intervals.icu niet werkt.</p>
+      <div class="run-actions">${runBtn('exportAllLevels','Alle niveaus (A–H) als zip','sm')}${runBtn('exportPeriod','Komende 2 weken als zip','sm')}</div>
+      <details class="acc"><summary>Uitleg: .fit-bestanden via de kabel op je horloge zetten</summary><div class="acc-body"><ol class="small run-ol"><li>Pak de zip uit (rechtermuisknop › Alles uitpakken). Sluit je Forerunner 165 met de kabel aan op je computer.</li><li>Open het horloge in de Verkenner › map <b>GARMIN</b> › <b>NewFiles</b> (bestaat die niet: probeer de map <b>Workouts</b>).</li><li>Kopieer het .fit-bestand (of bij de zip: alle bestanden — begin desnoods met alleen <b>Niveau_A.fit</b> als test) erin, werp het horloge veilig uit en koppel los. Het horloge verplaatst de bestanden zelf naar <b>Workouts</b>; start het zo nodig opnieuw op.</li><li>Op het horloge: <b>START</b> › <b>Hardlopen</b> › houd <b>UP</b> ingedrukt › <b>Training</b> › <b>Workouts</b> (of <b>Mijn workouts</b>) — daar staan Niveau A t/m H.</li></ol><div class="tny muted">Dit is de route die gebruikers voor veel Garmin-modellen beschrijven; Garmin zelf publiceert deze stappen niet per model. Naam wordt op sommige horloges na 15 tekens afgekapt.</div></div></details>
+    </div></details>`;
 }
 /*__HARDLOPEN_2_END__*/
 
