@@ -368,6 +368,12 @@ pre.sketch{overflow:auto;background:#EDF2F5;padding:12px;border-radius:10px;font
 .run-day-body{padding:0 12px 12px;animation:runOpen .18s ease-out}
 .run-chev{width:18px;height:18px;margin-left:4px;display:inline-block;background:no-repeat center/14px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7872' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");transition:transform .18s}
 .run-day[open] .run-chev{transform:rotate(180deg)}
+/* slepen */
+#view-running details.run-day.planned>summary{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.run-ghost{position:fixed;left:0;top:0;z-index:9999;pointer-events:none;display:grid;grid-template-columns:76px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--green);border-radius:12px;box-shadow:0 10px 28px rgba(20,50,40,.22);opacity:.96}
+.run-dragging{opacity:.35}
+.run-drop{outline:2px dashed var(--green);outline-offset:-2px;background:var(--mint)!important}
+.run-src{margin:10px 0 4px}
 @keyframes runOpen{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
 .run-edit{margin-top:10px;padding-top:10px;border-top:1px solid var(--line2)}
 .run-chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
@@ -478,7 +484,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.7.3";
+const APP_VERSION = "block2-2.7.4";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -5312,6 +5318,24 @@ function runLooseActivities(){
     .sort((x,y)=>(y.startTime||y.date).localeCompare(x.startTime||x.date)).slice(0,6);
 }
 
+/* waar de status vandaan komt: de waarden uit je Ochtendcheck, je eigen beoordeling en je vorige training */
+function runStatusSources(rd, pre){
+  const oc = [];
+  if(pre){
+    if(num(pre.energy)!=null) oc.push('energie '+pre.energy);
+    if(num(pre.painLeft)!=null) oc.push('pijn linkerbeen '+pre.painLeft);
+    if(typeof pre.painWalking==='boolean') oc.push(pre.painWalking || pre.painStairs ? 'klachten bij wandelen/traplopen' : 'geen klachten bij wandelen/traplopen');
+  }
+  const row = (k, v) => `<div class="row"><span class="k">${k}</span><span class="v" style="white-space:normal;font-weight:500">${v}</span></div>`;
+  let h = row('Ochtendcheck vandaag', (oc.length ? esc(oc.join(' · ')) : 'nog niet ingevuld') + ' <a href="#" data-oc-open class="tny">aanpassen</a>');
+  if(rd.own) h += row('Jouw beoordeling (Vandaag)', RUN_LIGHT[rd.own].emoji+' '+esc(RUN_LIGHT[rd.own].nl.toLowerCase())+(rd.ownMilder ? ' <span class="tny muted">— die wijkt af van de automatische waarschuwing; de waarschuwing blijft staan.</span>' : ''));
+  if(rd.last){
+    const ago = Math.round((parseDate(todayISO())-parseDate(rd.last.date))/86400000);
+    h += row('Vorige training ('+esc(runDateShort(rd.last.date))+')', esc(runOutcome(rd.last).text.replace(/\.$/,'')) + (ago>1 ? ` <span class="tny muted">· ${ago} dagen geleden</span>` : ''));
+  } else h += row('Vorige training', 'nog geen');
+  return `<div class="week-track small run-src">${h}</div>`;
+}
+
 /* ---------- OVERZICHT: alleen wat nu nodig is ---------- */
 function runViewOverview(){
   const rp = RP(), today = todayISO(); let h = '';
@@ -5349,7 +5373,8 @@ function runViewOverview(){
   const rd = runReadiness(today), st = RUN_LIGHT[rd.shown], pre = runPre(today);
   h += `<div class="card run-status st-${rd.shown}">
     <div class="run-light"><span class="run-bulb">${st.emoji}</span><div><b>${esc(runStatusHeadline(rd))}</b>
-      <div class="tny muted">${rd.own ? 'Je eigen beoordeling op Vandaag: '+RUN_LIGHT[rd.own].emoji+' '+esc(RUN_LIGHT[rd.own].nl.toLowerCase())+(rd.ownMilder?' — die wijkt af van de automatische waarschuwing; de waarschuwing blijft staan.':'') : 'Uit je Ochtendcheck en je vorige training.'}</div></div></div>
+      </div></div>
+    ${runStatusSources(rd, pre)}
     ${runPreComplete(pre) ? '' : `<div class="run-actions"><button class="btn sm primary" data-oc-open>Ochtendcheck invullen</button></div>`}
     <details class="acc"><summary>Waarom?</summary><div class="acc-body">
       ${rd.reasons.length?`<ul class="small">${rd.reasons.map(r=>`<li>${esc(r.text)}</li>`).join('')}</ul>`:''}
@@ -5405,7 +5430,7 @@ function runViewProgram(){
   h += `</div><div class="run-actions">${runBtn('tplAdd','+ Nieuw niveau','sm')}<span class="tny muted">kopie van ${esc(cur.name)}</span></div>${runLegend()}${rp.levelLog.length?`<details class="acc"><summary>Niveau-geschiedenis</summary><div class="acc-body"><ul class="small">${rp.levelLog.slice().reverse().map(l=>`<li>${esc(fmt(l.date,{day:'numeric',month:'long'}))}: ${esc((runTpl(l.from)||{}).name||l.from||'—')} → <b>${esc((runTpl(l.to)||{}).name||l.to)}</b>${l.reason?` <span class="tny muted">(${esc(l.reason)})</span>`:''}</li>`).join('')}</ul></div></details>`:''}</div></details>`;
 
   /* kalender: elke dag; tik op een training om alles ervan te zien */
-  h += `<div class="card"><h3>Kalender</h3>`;
+  h += `<div class="card"><h3>Kalender</h3><p class="tny muted" style="margin-top:-4px">Tip: houd een training vast en sleep hem naar een andere dag.</p>`;
   const ahead = rp.settings.planWeeksAhead || 2, sugg = new Set(runSuggestionDates(addDays(today,-7), ahead+1)), wk0 = runMonday(addDays(today,-7));
   for(let w=0; w<ahead+2; w++){
     const mon = addDays(wk0, w*7), sun = addDays(mon,6); let rows = '';
@@ -5413,12 +5438,12 @@ function runViewProgram(){
       const d = addDays(mon,i), ss = runSessionsOn(d), dl = esc(runDateShort(d)) + (d===today ? ' <span class="pill priority">vandaag</span>' : '');
       ss.forEach(s=>{
         const T = runTotals(s.steps);
-        rows += `<details class="run-day ${s.status}" id="run-${s.id}" data-run-day="${s.id}" ${RUI.openId===s.id?'open':''}><summary><span class="run-day-d">${dl}</span><span class="run-day-b"><b>${esc(s.name.replace(/ – .*/,''))}</b> <span class="tny muted">${runMinLabel(T.total)} · ${esc(runShortStructure(s.steps))}</span></span><span class="run-day-s">${s.status==='planned' ? (s.date<today ? '<span class="pill warn">nog verwerken</span>' : '') : runStatusPill(s)}${coachPill(s)}<span class="run-chev" aria-hidden="true"></span></span></summary>
+        rows += `<details class="run-day ${s.status}" id="run-${s.id}" data-run-day="${s.id}" data-day="${d}" ${RUI.openId===s.id?'open':''}><summary><span class="run-day-d">${dl}</span><span class="run-day-b"><b>${esc(s.name.replace(/ – .*/,''))}</b> <span class="tny muted">${runMinLabel(T.total)} · ${esc(runShortStructure(s.steps))}</span></span><span class="run-day-s">${s.status==='planned' ? (s.date<today ? '<span class="pill warn">nog verwerken</span>' : '') : runStatusPill(s)}${coachPill(s)}<span class="run-chev" aria-hidden="true"></span></span></summary>
           <div class="run-day-body">${runSessionDetail(s)}</div></details>`;
       });
       if(!ss.length){
         const canPlan = sugg.has(d) && d>=today;
-        rows += `<div class="run-day rest"><span class="run-day-d">${dl}</span><span class="run-day-b">Rustdag${canPlan?` <span class="tny muted">· voorstel ${esc(cur.name)}</span>`:''}</span><span class="run-day-s">${canPlan?runBtn('plan|'+d+'|'+cur.id,'+ Inplannen','sm'):''}</span></div>`;
+        rows += `<div class="run-day rest" data-day="${d}"><span class="run-day-d">${dl}</span><span class="run-day-b">Rustdag${canPlan?` <span class="tny muted">· voorstel ${esc(cur.name)}</span>`:''}</span><span class="run-day-s">${canPlan?runBtn('plan|'+d+'|'+cur.id,'+ Inplannen','sm'):''}</span></div>`;
       }
     }
     h += `<div class="run-week"><div class="run-week-h">Week ${runIsoWeek(mon)} · ${esc(fmt(mon,{day:'numeric',month:'short'}))} – ${esc(fmt(sun,{day:'numeric',month:'short'}))}</div>${rows}</div>`;
@@ -5543,6 +5568,59 @@ document.addEventListener('toggle', e=>{
   }
   else if(RUI.openId===id){ RUI.openId = null; if(RUI.editId===id) RUI.editId = null; }
 }, true);
+
+/* ---------- trainingen verslepen naar een andere dag ----------
+   telefoon: even vasthouden (zodat scrollen gewoon blijft werken) en dan schuiven; computer: met de muis slepen */
+const RUN_DRAG = { sid:null, active:false, timer:null, x0:0, y0:0, dx:0, dy:0, ghost:null, over:null, touch:false, eat:false };
+function runMoveTo(id, d){
+  const s = runSes(id); if(!s || s.status!=='planned' || !runValidDate(d) || d===s.date) return false;
+  if(d < todayISO()){ runMsg('Een training verzet je niet naar een dag die al voorbij is.', 'err'); return false; }
+  const open = RUI.openId; runSet(['ses', id, 'date'], d); RUI.openId = open; RUI.scrollTo = null;
+  runMsg(s.name.replace(/ – .*/,'')+' verzet naar '+runDateShort(d)+'.'); return true;
+}
+function runDragTarget(x, y){ const el = document.elementFromPoint(x, y); return (el && el.closest && el.closest('#view-running [data-day]')) || null; }
+function runDragStart(){
+  const D = RUN_DRAG, src = document.getElementById('run-'+D.sid); if(!src){ D.sid = null; return; }
+  const sum = src.querySelector('summary'), r = sum.getBoundingClientRect();
+  const g = document.createElement('div'); g.className = 'run-ghost'; g.innerHTML = sum.innerHTML; g.style.width = r.width+'px'; document.body.appendChild(g);
+  D.ghost = g; D.dx = D.x0 - r.left; D.dy = D.y0 - r.top; D.active = true; src.classList.add('run-dragging');
+  if(navigator.vibrate) try { navigator.vibrate(12); } catch(e){}
+  runDragMove(D.x0, D.y0);
+}
+function runDragMove(x, y){
+  const D = RUN_DRAG; D.ghost.style.transform = `translate(${x - D.dx}px, ${y - D.dy}px)`;
+  const t = runDragTarget(x, y); if(D.over && D.over!==t) D.over.classList.remove('run-drop'); if(t) t.classList.add('run-drop'); D.over = t;
+  if(y < 80) window.scrollBy(0, -14); else if(y > innerHeight - 80) window.scrollBy(0, 14);          // vanzelf meescrollen aan de rand
+}
+function runDragEnd(drop){
+  const D = RUN_DRAG; clearTimeout(D.timer);
+  if(D.active){
+    const day = D.over && D.over.dataset.day, src = document.getElementById('run-'+D.sid);
+    if(D.ghost) D.ghost.remove(); if(D.over) D.over.classList.remove('run-drop'); if(src) src.classList.remove('run-dragging');
+    D.eat = true; setTimeout(()=>{ D.eat = false; }, 400);                        // de klik na het loslaten niet als open/dicht tellen
+    if(drop && day && runMoveTo(D.sid, day)){ saveState(); renderCurrent(); coachSoon(); }
+  }
+  Object.assign(D, { sid:null, active:false, ghost:null, over:null });
+}
+document.addEventListener('pointerdown', e=>{
+  const sum = e.target.closest && e.target.closest('#view-running details.run-day.planned[data-run-day] > summary'); if(!sum || e.button>0) return;
+  const D = RUN_DRAG; D.sid = sum.parentElement.dataset.runDay; D.x0 = e.clientX; D.y0 = e.clientY; D.active = false; D.touch = e.pointerType!=='mouse';
+  if(D.touch) D.timer = setTimeout(runDragStart, 380);
+});
+document.addEventListener('pointermove', e=>{
+  const D = RUN_DRAG; if(!D.sid) return;
+  if(!D.active){
+    const moved = Math.hypot(e.clientX-D.x0, e.clientY-D.y0);
+    if(D.touch){ if(moved>10){ clearTimeout(D.timer); D.sid = null; } return; }          // eerst bewegen = gewoon scrollen
+    if(moved<6) return; runDragStart();
+  }
+  e.preventDefault(); runDragMove(e.clientX, e.clientY);
+}, { passive:false });
+document.addEventListener('touchmove', e=>{ if(RUN_DRAG.active) e.preventDefault(); }, { passive:false });
+document.addEventListener('pointerup', ()=>{ if(RUN_DRAG.sid) runDragEnd(true); });
+document.addEventListener('pointercancel', ()=>{ if(RUN_DRAG.sid) runDragEnd(false); });
+document.addEventListener('click', e=>{ if(RUN_DRAG.eat && e.target.closest && e.target.closest('#view-running summary')){ e.preventDefault(); e.stopPropagation(); RUN_DRAG.eat = false; } }, true);
+document.addEventListener('contextmenu', e=>{ if(RUN_DRAG.sid && e.target.closest && e.target.closest('#view-running summary')) e.preventDefault(); });
 
 /* ===========================================================================
    HARDLOPEN — deel 4: Atempo Personal Coach (proef) — trainingen naar Intervals.icu → Garmin
