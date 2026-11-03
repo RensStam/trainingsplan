@@ -365,6 +365,8 @@ pre.sketch{overflow:auto;background:#EDF2F5;padding:12px;border-radius:10px;font
 .run-day-d{font-size:12px;font-weight:700;color:var(--muted)}
 .run-day-s{display:flex;gap:4px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
 .run-day-body{padding:0 12px 12px;animation:runOpen .18s ease-out}
+.run-chev{width:18px;height:18px;margin-left:4px;display:inline-block;background:no-repeat center/14px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7872' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");transition:transform .18s}
+.run-day[open] .run-chev{transform:rotate(180deg)}
 @keyframes runOpen{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
 .run-edit{margin-top:10px;padding-top:10px;border-top:1px solid var(--line2)}
 .run-chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
@@ -475,7 +477,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.7.1";
+const APP_VERSION = "block2-2.7.2";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -1201,15 +1203,22 @@ function runNextTraining(){
   return rp.sessions.filter(s=> s.status==='planned' && s.date>=t).sort(runByDate)[0] || null;
 }
 const runOverdue = () => RP().sessions.filter(s=> s.status==='planned' && s.date<todayISO()).sort(runByDate);
-function runSuggestionDates(from, weeks){       // standaarddagen zonder training of rustdag
+/* voorgestelde trainingsdagen: je vaste trainingsdagen, maar slim: niet te dicht op een (verzette) training en per week
+   nooit meer trainingen dan je trainingsdagen */
+function runSuggestionDates(from, weeks){
   const rp = RP(), out = [];
   if(rp.settings.paused) return out;
-  const start = runMonday(from);
+  const start = runMonday(from), minRest = num(runCurrentTpl().minRestDays) ?? 2, perWeek = rp.settings.trainingDays.length;
+  const busy = rp.sessions.filter(s=> s.date && (s.status==='done' || (s.status==='planned' && s.date>=todayISO()))).map(s=>s.date);
+  const gap = (a,b) => Math.abs(Math.round((parseDate(a)-parseDate(b))/86400000));
   for(let i=0;i<weeks*7;i++){
     const d = addDays(start,i); if(d<todayISO()) continue;
     if(!rp.settings.trainingDays.includes(dowKey(d))) continue;
     if(rp.restDays[d]) continue;
     if(rp.sessions.some(s=>s.date===d && s.status!=='cancelled')) continue;
+    const all = busy.concat(out);
+    if(all.some(x=> gap(x,d)<=minRest)) continue;                                        // te weinig rust ertussen
+    const mon = runMonday(d); if(all.filter(x=> runMonday(x)===mon).length >= perWeek) continue;   // week zit al vol
     out.push(d);
   }
   return out;
@@ -5409,7 +5418,7 @@ function runViewProgram(){
       const d = addDays(mon,i), ss = runSessionsOn(d), dl = esc(runDateShort(d)) + (d===today ? ' <span class="pill priority">vandaag</span>' : '');
       ss.forEach(s=>{
         const T = runTotals(s.steps);
-        rows += `<details class="run-day ${s.status}" id="run-${s.id}" data-run-day="${s.id}" ${RUI.openId===s.id?'open':''}><summary><span class="run-day-d">${dl}</span><span class="run-day-b"><b>${esc(s.name.replace(/ – .*/,''))}</b> <span class="tny muted">${runMinLabel(T.total)} · ${esc(runShortStructure(s.steps))}</span></span><span class="run-day-s">${s.status==='planned' ? (s.date<today ? '<span class="pill warn">nog verwerken</span>' : '') : runStatusPill(s)}${coachPill(s)}</span></summary>
+        rows += `<details class="run-day ${s.status}" id="run-${s.id}" data-run-day="${s.id}" ${RUI.openId===s.id?'open':''}><summary><span class="run-day-d">${dl}</span><span class="run-day-b"><b>${esc(s.name.replace(/ – .*/,''))}</b> <span class="tny muted">${runMinLabel(T.total)} · ${esc(runShortStructure(s.steps))}</span></span><span class="run-day-s">${s.status==='planned' ? (s.date<today ? '<span class="pill warn">nog verwerken</span>' : '') : runStatusPill(s)}${coachPill(s)}<span class="run-chev" aria-hidden="true"></span></span></summary>
           <div class="run-day-body">${runSessionDetail(s)}</div></details>`;
       });
       if(!ss.length){
@@ -5529,7 +5538,13 @@ document.addEventListener('click', e=>{
 document.addEventListener('toggle', e=>{
   const dt = e.target; if(!dt.matches || !dt.matches('details[data-run-day]')) return;
   const id = dt.dataset.runDay;
-  if(dt.open){ RUI.openId = id; document.querySelectorAll('details[data-run-day][open]').forEach(o=>{ if(o!==dt) o.open = false; }); }
+  if(dt.open){
+    RUI.openId = id;
+    // een andere open dag dichtklappen zonder dat de aangetikte dag onder je vinger wegschuift
+    const top = dt.getBoundingClientRect().top;
+    document.querySelectorAll('details[data-run-day][open]').forEach(o=>{ if(o!==dt) o.open = false; });
+    const shift = dt.getBoundingClientRect().top - top; if(Math.abs(shift)>1) window.scrollBy(0, shift);
+  }
   else if(RUI.openId===id){ RUI.openId = null; if(RUI.editId===id) RUI.editId = null; }
 }, true);
 
