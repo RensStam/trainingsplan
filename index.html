@@ -332,7 +332,8 @@ pre.sketch{overflow:auto;background:#EDF2F5;padding:12px;border-radius:10px;font
 .run-sub{font-size:12px;font-weight:700;color:var(--muted);margin:12px 0 2px}
 .run-res{margin:6px 0}
 .run-totals{font-size:13px;margin:8px 0}
-.run-tl{display:block;margin:6px 0;max-width:100%}
+.run-tl{display:block;margin:6px 0;max-width:min(100%,560px)}
+.run-close{margin-left:auto}
 .run-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin:2px 0 6px}
 .run-legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .run-light{display:flex;gap:12px;align-items:flex-start}
@@ -477,7 +478,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.7.2";
+const APP_VERSION = "block2-2.7.3";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -1203,22 +1204,17 @@ function runNextTraining(){
   return rp.sessions.filter(s=> s.status==='planned' && s.date>=t).sort(runByDate)[0] || null;
 }
 const runOverdue = () => RP().sessions.filter(s=> s.status==='planned' && s.date<todayISO()).sort(runByDate);
-/* voorgestelde trainingsdagen: je vaste trainingsdagen, maar slim: niet te dicht op een (verzette) training en per week
-   nooit meer trainingen dan je trainingsdagen */
+/* voorgestelde trainingsdagen: je vaste trainingsdagen zonder training. Heb je een training van een dag weg verzet,
+   dan vervalt het voorstel op die oude dag (de training is er al, alleen op een andere dag) */
 function runSuggestionDates(from, weeks){
   const rp = RP(), out = [];
   if(rp.settings.paused) return out;
-  const start = runMonday(from), minRest = num(runCurrentTpl().minRestDays) ?? 2, perWeek = rp.settings.trainingDays.length;
-  const busy = rp.sessions.filter(s=> s.date && (s.status==='done' || (s.status==='planned' && s.date>=todayISO()))).map(s=>s.date);
-  const gap = (a,b) => Math.abs(Math.round((parseDate(a)-parseDate(b))/86400000));
+  const start = runMonday(from);
   for(let i=0;i<weeks*7;i++){
     const d = addDays(start,i); if(d<todayISO()) continue;
     if(!rp.settings.trainingDays.includes(dowKey(d))) continue;
     if(rp.restDays[d]) continue;
-    if(rp.sessions.some(s=>s.date===d && s.status!=='cancelled')) continue;
-    const all = busy.concat(out);
-    if(all.some(x=> gap(x,d)<=minRest)) continue;                                        // te weinig rust ertussen
-    const mon = runMonday(d); if(all.filter(x=> runMonday(x)===mon).length >= perWeek) continue;   // week zit al vol
+    if(rp.sessions.some(s=> s.status!=='cancelled' && (s.date===d || s.movedFrom===d))) continue;
     out.push(d);
   }
   return out;
@@ -5284,7 +5280,7 @@ function runEditHTML(s){
     <div class="run-sub">Of neem een ander niveau voor deze training</div>
     <div class="run-chips">${RP().templates.map(t=>runBtn('sesLevel|'+s.id+'|'+t.id, esc(t.name.replace(/^Niveau /,'')), 'sm'+(t.id===s.templateId?' active':''))).join('')}</div>
     ${runInp('Notitie', '__run.ses.'+s.id+'.notes', s.notes, { ph:'optioneel' })}
-    <div class="run-actions">${runBtn('editToggle|'+s.id,'Klaar','sm primary')}</div></div>`;
+    <div class="run-actions">${runBtn('close|'+s.id,'Klaar','sm primary')}</div></div>`;
 }
 /* alles van één training, onder de training in de kalender */
 function runSessionDetail(s){
@@ -5297,16 +5293,15 @@ function runSessionDetail(s){
     const editing = RUI.editId===s.id;
     h += `<div class="run-actions">
         <label class="run-move">Verzetten <input type="date" data-bind="${b}date" value="${esc(s.date)}"></label>
-        ${editing ? '' : runBtn('editToggle|'+s.id, 'Aanpassen', 'sm')}
-        ${s.date>today ? runBtn('skip|'+s.id,'Overslaan','sm') : ''}${runBtn('del|'+s.id,'Verwijderen','sm danger')}</div>`;
+        ${editing ? '' : runBtn('editToggle|'+s.id, 'Aanpassen', 'sm')}${runBtn('del|'+s.id,'Verwijderen','sm danger')}${editing ? '' : runBtn('close|'+s.id,'Klaar','sm primary run-close')}</div>`;
     if(editing) h += runEditHTML(s);
   } else if(s.status==='done'){
     h += `<div class="small run-res">${runResultLine(s)}</div><div class="run-sub">Na de training</div>${runPostForm(s)}`;
     h += `<div class="small"><b>Beoordeling:</b> ${esc(runOutcome(s).text)}</div>`;
     if(!s.garminExternalId) h += `<div class="form-grid cols-2">${runInp('Duur (min)', b+'manDuration', s.manual && s.manual.durationMin, { type:'number', inputmode:'decimal' })}${runInp('Afstand (km)', b+'manDistance', s.manual && s.manual.distanceKm, { type:'number', inputmode:'decimal' })}</div>`;
-    h += `<div class="run-actions">${runBtn('undo|'+s.id,'Ongedaan maken','sm')}</div>`;
+    h += `<div class="run-actions">${runBtn('undo|'+s.id,'Ongedaan maken','sm')}${runBtn('close|'+s.id,'Klaar','sm primary run-close')}</div>`;
   } else {
-    h += `<div class="run-actions">${runBtn('undo|'+s.id,'Ongedaan maken','sm')}${runBtn('del|'+s.id,'Verwijderen','sm danger')}</div>`;
+    h += `<div class="run-actions">${runBtn('undo|'+s.id,'Ongedaan maken','sm')}${runBtn('del|'+s.id,'Verwijderen','sm danger')}${runBtn('close|'+s.id,'Klaar','sm primary run-close')}</div>`;
   }
   return h;
 }
@@ -5454,7 +5449,7 @@ function runSet(parts, raw){
   }
   if(k==='ses'){
     const s = runSes(parts[1]); if(!s) return; const f = parts[2];
-    if(f==='date'){ if(!runValidDate(raw)) return bad('Ongeldige datum.'); s.date = raw; rp.sessions.sort(runByDate); RUI.openId = s.id; RUI.scrollTo = s.id; }
+    if(f==='date'){ if(!runValidDate(raw)) return bad('Ongeldige datum.'); if(raw!==s.date && !s.movedFrom) s.movedFrom = s.date; if(raw===s.movedFrom) delete s.movedFrom; s.date = raw; rp.sessions.sort(runByDate); RUI.openId = s.id; RUI.scrollTo = s.id; }
     else if(f==='notes') s.notes = String(raw);
     else if(f==='manDuration' || f==='manDistance'){ s.manual = s.manual || {}; const v = String(raw).trim()===''?null:numIn(raw,0,1000); if(v===undefined) return bad('Vul een geldig getal in.'); s.manual[f==='manDuration'?'durationMin':'distanceKm'] = v; }
     coachSoon(); return;
@@ -5495,6 +5490,7 @@ function runAct0(act, args, el){
     case 'undo': if(s){ if(s.status==='done'){ s.garminExternalId = null; s.manual = null; delete s.doneAt; } s.status = 'planned'; RUI.openId = s.id; runMsg('Ongedaan gemaakt: de training staat weer op gepland.'); } break;
     case 'del': if(s){ if(s.status==='done') return runMsg('Een uitgevoerde training verwijder je niet. Gebruik Ongedaan maken.','err'); if(!confirm('Deze training verwijderen?')) return; coachAutoRemove(s); rp.sessions = rp.sessions.filter(x=>x.id!==s.id); if(RUI.openId===s.id) RUI.openId = null; } break;
     case 'editToggle': if(s){ RUI.editId = RUI.editId===s.id ? null : s.id; RUI.openId = s.id; delete (RUI.q||{})[s.id]; } break;
+    case 'close': RUI.openId = null; RUI.editId = null; break;          // training dichtklappen (ook na aanpassen)
     case 'pause': rp.settings.paused = true; rp.settings.pausedFrom = today; runMsg('Programma gepauzeerd. Er worden geen trainingen voorgesteld.'); break;
     case 'resume': rp.settings.paused = false; rp.settings.pausedFrom = null; runMsg('Programma hervat.'); break;
     case 'day': { const k = args[0], a = rp.settings.trainingDays; rp.settings.trainingDays = a.includes(k) ? a.filter(x=>x!==k) : DOW.filter(x=>a.includes(x)||x===k); break; }
