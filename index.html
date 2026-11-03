@@ -475,7 +475,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.7.0";
+const APP_VERSION = "block2-2.7.1";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -4372,15 +4372,23 @@ function garminAutoCoachOn(){ return false; }          // Garmin-runs worden gee
    Coach-run die er op die dag al was wordt gekoppeld en met de Garmin-waarden bijgewerkt (zo verdwijnt ook de
    verkeerde duur van 28 sep), anders wordt de run uit de Garmin-activiteit aangemaakt. Draait alleen als zulke
    trainingen gevonden worden; daarna niets meer. Garmin-gegevens zelf veranderen niet. */
+/* het hardloopprogramma bestaat sinds 1 november 2026: een training van daarvóór is altijd een oude Garmin Coach-run
+   die per ongeluk als programmatraining is toegevoegd. Die wordt weer een gewone Coach-run (met de Garmin-gegevens). */
+const RUN_PROGRAM_START = '2026-11-01';
 function fixOldRunsAsLevelA(){
   const rp = state.runningProgram; if(!rp) return false;
-  const bad = rp.sessions.filter(s=> s.status==='done' && s.addedAfterwards && s.garminExternalId && s.date<='2026-10-31' && /^2026-11-01T19:1[5-7]/.test(s.createdAt||''));
+  const bad = rp.sessions.filter(s=> s.date && s.date<RUN_PROGRAM_START);
   let n = 0;
   for(const s of bad){
-    const a = (state.garmin.activities||[]).find(x=> x.externalId===s.garminExternalId); if(!a) continue;
-    const same = CB.coachRuns.find(r=> r.date===a.date && !r.garminExternalId);
-    if(same) same.garminExternalId = a.externalId;
-    garminApplyRun(a);
+    const a = s.garminExternalId ? (state.garmin.activities||[]).find(x=> x.externalId===s.garminExternalId) : null;
+    if(a){
+      const same = CB.coachRuns.find(r=> r.date===a.date && !r.garminExternalId);
+      if(same) same.garminExternalId = a.externalId;
+      garminApplyRun(a);
+    } else if(s.status==='done' && !CB.coachRuns.some(r=> r.date===s.date)){
+      const m = s.manual || {};
+      CB.coachRuns.push({ id:'c'+Date.now().toString(36)+n, date:s.date, done:true, totalMin:num(m.durationMin), distanceKm:num(m.distanceKm), garminExternalId:null });
+    }
     rp.sessions = rp.sessions.filter(x=> x.id!==s.id); n++;
   }
   if(n){ state.meta.fixes = [...(state.meta.fixes||[]), 'oude-runs-niveauA-'+n]; }
@@ -4806,7 +4814,15 @@ async function syncNow(retry){
     if(!localChanged && !cloudChanged){ syncSetMsg('☁ Gesynchroniseerd '+syncTime()); if(fixOldRunsAsLevelA()){ saveState(); renderCurrent(); } return; }
     if(!localChanged && cloudChanged){ syncApplyCloud(row); return; }
     if(localChanged && !cloudChanged){ await syncPush(row,false); if(fixOldRunsAsLevelA()){ saveState(); renderCurrent(); } return; }
-    SYNC.conflict = row; syncShowConflict(row);                                    // beide gewijzigd: gebruiker kiest
+    // beide gewijzigd (bv. op twee apparaten runs opgehaald): vanzelf samenvoegen; de vorige cloudversie wordt bewaard
+    let merged = null;
+    try { merged = syncMerge(state, row.state, Date.parse(state.meta.updatedAt||0) >= Date.parse((row.state.meta||{}).updatedAt||row.updated_at||0)); } catch(e){ merged = null; }
+    if(merged && !syncEmpty(merged)){
+      state = mergeState(defaultState(), merged); CB = state.currentBlock; fixOldRunsAsLevelA(); saveState();
+      await syncPush(row, true);
+      syncSetMsg('☁ Samengevoegd met de cloud '+syncTime()); if(typeof renderCurrent==='function') renderCurrent(); return;
+    }
+    SYNC.conflict = row; syncShowConflict(row);                                    // samenvoegen lukte niet: gebruiker kiest
     syncSetMsg('☁ Kies welke versie je wilt houden');
   }catch(e){
     if(e.message==='RETRY' && retry<2){ SYNC.busy=false; return syncNow(retry+1); }
@@ -4816,6 +4832,26 @@ async function syncNow(retry){
 function syncSoon(){
   if(!fbConfigured() || SYNC.conflict) return; const s = syncLoad(); if(!s.auth) return;
   clearTimeout(SYNC.timer); SYNC.timer = setTimeout(()=>syncNow(), 4000);
+}
+/* twee standen samenvoegen als op beide plekken iets is gewijzigd. Alles van beide kanten blijft: dagen, trainingen,
+   runs en activiteiten worden per datum of per id samengevoegd. Alleen als hetzelfde veld op beide plekken een andere
+   waarde heeft, wint de nieuwste stand (aNewer: is a, dit apparaat, de nieuwste). */
+function syncMerge(a, b, aNewer){
+  const key = x => x && typeof x==='object' ? (x.id ?? x.externalId ?? null) : null;
+  const isObj = x => x && typeof x==='object' && !Array.isArray(x);
+  const empty = x => x==null || x==='';
+  const m = (x, y) => {
+    if(JSON.stringify(x)===JSON.stringify(y)) return x;
+    if(empty(x)) return y; if(empty(y)) return x;
+    if(isObj(x) && isObj(y)){ const o = {}; new Set([...Object.keys(x), ...Object.keys(y)]).forEach(k=>{ o[k] = !(k in y) ? x[k] : !(k in x) ? y[k] : m(x[k], y[k]); }); return o; }
+    if(Array.isArray(x) && Array.isArray(y) && x.concat(y).length && x.concat(y).every(e=>key(e)!=null)){     // ook als één kant (nog) leeg is
+      const out = x.map(e=>{ const o = y.find(f=>key(f)===key(e)); return o ? m(e, o) : e; });
+      y.forEach(f=>{ if(!x.some(e=>key(e)===key(f))) out.push(f); });
+      return out;
+    }
+    return aNewer ? x : y;
+  };
+  return m(a, b);
 }
 /* wat zit er in een stand (voor keuzes en herstel): dagen, trainingen, runs, Garmin */
 function syncSummary(st){
@@ -5238,7 +5274,8 @@ function runEditHTML(s){
     <div class="tny muted">Een wijziging telt meteen${coachState(s)!=='local' ? ' en gaat vanzelf mee naar Garmin' : ''}. Het niveau zelf blijft zoals het is.</div>
     <div class="run-sub">Of neem een ander niveau voor deze training</div>
     <div class="run-chips">${RP().templates.map(t=>runBtn('sesLevel|'+s.id+'|'+t.id, esc(t.name.replace(/^Niveau /,'')), 'sm'+(t.id===s.templateId?' active':''))).join('')}</div>
-    ${runInp('Notitie', '__run.ses.'+s.id+'.notes', s.notes, { ph:'optioneel' })}</div>`;
+    ${runInp('Notitie', '__run.ses.'+s.id+'.notes', s.notes, { ph:'optioneel' })}
+    <div class="run-actions">${runBtn('editToggle|'+s.id,'Klaar','sm primary')}</div></div>`;
 }
 /* alles van één training, onder de training in de kalender */
 function runSessionDetail(s){
@@ -5251,7 +5288,7 @@ function runSessionDetail(s){
     const editing = RUI.editId===s.id;
     h += `<div class="run-actions">
         <label class="run-move">Verzetten <input type="date" data-bind="${b}date" value="${esc(s.date)}"></label>
-        ${runBtn('editToggle|'+s.id, editing?'Klaar':'Aanpassen', 'sm'+(editing?' active':''))}
+        ${editing ? '' : runBtn('editToggle|'+s.id, 'Aanpassen', 'sm')}
         ${s.date>today ? runBtn('skip|'+s.id,'Overslaan','sm') : ''}${runBtn('del|'+s.id,'Verwijderen','sm danger')}</div>`;
     if(editing) h += runEditHTML(s);
   } else if(s.status==='done'){
@@ -5348,7 +5385,7 @@ function runLevelEditor(t){
         ${runInp('Afkoelen (min)',b+'cooldownMin',runMinStr(Math.round(t.cooldownMin*60)),{inputmode:'decimal',ph:'5'})}
       </div>${runInp('Opmerkingen',b+'notes',t.notes)}
       <div class="tny muted">Al geplande trainingen veranderen niet mee.</div>
-      ${own && RP().templates.length>1 ? `<div class="run-actions">${runBtn('tplDel|'+t.id,'Verwijderen','sm danger')}</div>` : ''}`;
+      <div class="run-actions">${runBtn('tplEdit|'+t.id,'Klaar','sm primary')}${own && RP().templates.length>1 ? runBtn('tplDel|'+t.id,'Verwijderen','sm danger') : ''}</div>`;
 }
 function runViewProgram(){
   const rp = RP(), today = todayISO(), cur = runCurrentTpl(); let h = '';
@@ -5358,7 +5395,7 @@ function runViewProgram(){
     const steps = runStepsFromParams(t), isCur = t.id===cur.id, editing = RUI.manage===t.id;
     h += `<div class="run-level ${isCur?'cur':''} ${editing?'editing':''}"><div class="run-level-top"><b>${esc(t.name)}</b>${t.label?` <span class="tny muted">${esc(t.label)}</span>`:''}${isCur?' <span class="pill done">huidig</span>':''}</div>
       <div class="small">${esc(runShortStructure(steps))} · ${runMinLabel(runTotals(steps).total)}</div>${runTimelineSVG(steps, 20)}
-      <div class="run-actions">${runBtn('tplEdit|'+t.id, editing?'Klaar':'Aanpassen', 'sm'+(editing?' active':''))}</div>
+      ${editing ? '' : `<div class="run-actions">${runBtn('tplEdit|'+t.id, 'Aanpassen', 'sm')}</div>`}
       ${editing ? `<div class="run-level-edit">${runLevelEditor(t)}</div>` : ''}</div>`;
   });
   h += `</div><div class="run-actions">${runBtn('tplAdd','+ Nieuw niveau','sm')}<span class="tny muted">kopie van ${esc(cur.name)}</span></div>${runLegend()}${rp.levelLog.length?`<details class="acc"><summary>Niveau-geschiedenis</summary><div class="acc-body"><ul class="small">${rp.levelLog.slice().reverse().map(l=>`<li>${esc(fmt(l.date,{day:'numeric',month:'long'}))}: ${esc((runTpl(l.from)||{}).name||l.from||'—')} → <b>${esc((runTpl(l.to)||{}).name||l.to)}</b>${l.reason?` <span class="tny muted">(${esc(l.reason)})</span>`:''}</li>`).join('')}</ul></div></details>`:''}</div></details>`;
