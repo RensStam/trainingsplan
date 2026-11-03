@@ -318,8 +318,9 @@ pre.sketch{overflow:auto;background:#EDF2F5;padding:12px;border-radius:10px;font
   .card{padding:16px}
 }
 /*__HARDLOPEN_CSS_BEGIN__*/
-/* ===== Hardlopen (module) ===== */
+/* ===== Hardlopen (module) — eerst voor de telefoon gemaakt ===== */
 .run-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.run-tabs .btn{flex:1 1 0;max-width:220px}
 .run-msg{background:var(--mint);border:1px solid var(--line);border-radius:10px;padding:9px 13px;font-size:13px;margin:0 0 12px}
 .run-msg.err{background:#fbeaea;border-color:#e3b3b3;color:#7a2222}
 .run-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 2px;align-items:center}
@@ -327,8 +328,9 @@ pre.sketch{overflow:auto;background:#EDF2F5;padding:12px;border-radius:10px;font
 .run-row{padding:10px 0;border-top:1px solid var(--line2)}
 .run-row:first-of-type{border-top:0}
 .run-big{font-size:17px}
-.run-next-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}
-.run-detail{border-top:1px solid var(--line2);margin-top:10px;padding-top:10px}
+.run-when{font-size:13px;font-weight:700;color:var(--green);margin:2px 0}
+.run-sub{font-size:12px;font-weight:700;color:var(--muted);margin:12px 0 2px}
+.run-res{margin:6px 0}
 .run-totals{font-size:13px;margin:8px 0}
 .run-tl{display:block;margin:6px 0;max-width:100%}
 .run-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin:2px 0 6px}
@@ -338,44 +340,51 @@ pre.sketch{overflow:auto;background:#EDF2F5;padding:12px;border-radius:10px;font
 .run-status.st-green{border-left:5px solid #5aa57a}
 .run-status.st-orange{border-left:5px solid #e08a1e}
 .run-status.st-red{border-left:5px solid #c0392b}
+.run-ask{border-left:5px solid var(--green)}
+/* Garmin-regel bij een training */
+.run-g{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 2px}
+.run-g-ok{color:var(--green);font-weight:700;font-size:13px}
+/* niveaus */
 .run-ladder{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
 .run-level{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--card)}
 .run-level.cur{border-color:var(--green);background:var(--mint)}
 .run-level-top{margin-bottom:2px}
 .run-level.editing{grid-column:1/-1}
 .run-level-edit{margin-top:10px;padding-top:10px;border-top:1px solid var(--line2)}
+.form-grid.cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+/* kalender: elke dag van de week; rustdagen rustig, een training tik je open */
 .run-week{margin:12px 0}
 .run-week-h{font-weight:800;font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-.run-cal{display:flex;gap:12px;border:1px solid var(--line);border-radius:10px;padding:8px 11px;margin:5px 0;background:var(--card)}
-.run-cal.sug{border-style:dashed;background:transparent}
-.run-cal.rest{background:var(--mint)}
-.run-cal.done{border-left:4px solid #5aa57a}
-.run-cal.skipped,.run-cal.cancelled{opacity:.7}
-.run-cal-d{min-width:78px;font-size:12px;font-weight:700;color:var(--muted)}
-.run-cal-b{flex:1}
-.run-move input[type=date]{padding:5px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:12.5px}
-.run-steps{display:flex;flex-direction:column;gap:6px}
-.run-step{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-.run-step select,.run-step input{padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:inherit}
-.run-step input{width:70px}
-.run-kpis{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 12px}
-.run-kpis .rc{flex:1;min-width:120px}
-.run-ol{padding-left:20px;margin:6px 0}.run-ol li{margin:4px 0}
-@media(max-width:560px){ .run-cal{flex-direction:column;gap:2px}.run-cal-d{min-width:0}.run-actions.big .btn{flex:1 1 100%} }
-/* gekozen knop (trainingsdagen, niveau van een training) duidelijk zichtbaar */
-.run-tabs .btn.active,.run-actions .btn.active{background:var(--green);border-color:var(--green);color:#fff}
-/* kalender: elke dag van de week; rustdagen rustig, trainingen uitklapbaar */
-.run-day{display:block;border:1px solid var(--line);border-radius:10px;margin:4px 0;background:var(--card)}
-.run-day>summary,.run-day.rest{display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 11px;list-style:none;cursor:pointer;background:transparent}
+.run-day{display:block;border:1px solid var(--line);border-radius:12px;margin:5px 0;background:var(--card)}
+.run-day>summary,.run-day.rest{display:grid;grid-template-columns:76px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px 12px;list-style:none;cursor:pointer;background:transparent;min-height:44px}
 .run-day>summary::-webkit-details-marker{display:none}
-.run-day.rest{background:transparent;border-color:var(--line2);color:var(--muted);padding:5px 11px;cursor:default;font-size:13.5px}
+.run-day[open]{border-color:var(--green);box-shadow:0 2px 10px rgba(30,70,50,.08)}
+.run-day.rest{background:transparent;border-color:var(--line2);color:var(--muted);padding:6px 12px;cursor:default;font-size:13.5px;min-height:38px}
 .run-day.done{border-left:4px solid #5aa57a}
 .run-day.skipped,.run-day.cancelled{opacity:.7}
 .run-day-d{font-size:12px;font-weight:700;color:var(--muted)}
 .run-day-s{display:flex;gap:4px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
-.run-day>.acc-body{padding:2px 11px 10px}
-@media(max-width:560px){ .run-day>summary,.run-day.rest{grid-template-columns:60px minmax(0,1fr)} .run-day-s{grid-column:2;justify-content:flex-start} }
-details.acc.run-day>summary::before{content:none}   /* geen uitklappijltje: de hele regel is de knop */
+.run-day-body{padding:0 12px 12px;animation:runOpen .18s ease-out}
+@keyframes runOpen{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.run-edit{margin-top:10px;padding-top:10px;border-top:1px solid var(--line2)}
+.run-chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.run-chips .btn{min-width:42px}
+.run-move{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;font-weight:650}
+.run-move input[type=date]{padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;min-height:34px}
+.run-ol{padding-left:20px;margin:6px 0}.run-ol li{margin:4px 0}
+/* gekozen knop (trainingsdagen, niveau van een training) duidelijk zichtbaar */
+.run-tabs .btn.active,.run-actions .btn.active,.run-chips .btn.active{background:var(--green);border-color:var(--green);color:#fff}
+@media(max-width:860px){ .form-grid.cols-5{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media(max-width:560px){
+  .run-tabs .btn{max-width:none}
+  .run-day>summary,.run-day.rest{grid-template-columns:64px minmax(0,1fr)} .run-day-s{grid-column:2;justify-content:flex-start}
+  .run-actions.big .btn{flex:1 1 100%}
+  .run-actions .btn,.run-g .btn{min-height:40px}
+  /* korte keuzes naast elkaar houden, ook op de telefoon */
+  #view-running .form-grid,#view-running .form-grid.cols-4,#view-running .form-grid.cols-5{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+#view-running .form-grid{align-items:end}
+#ocCard{scroll-margin-top:90px}
 /*__HARDLOPEN_CSS_END__*/
 /*__ATEMPO_CSS_BEGIN__*/
 
@@ -466,7 +475,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.6.1";
+const APP_VERSION = "block2-2.7.0";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -885,7 +894,7 @@ const RP = () => state.runningProgram;
 const runId = () => 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 const runNow = () => new Date().toISOString();
 const runValidDate = s => typeof s==='string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s+'T12:00:00'));
-const runReplacesCoach = () => !!(state.runningProgram && state.runningProgram.settings && state.runningProgram.settings.replaceGarminCoach);
+const runReplacesCoach = () => true;        // het hardloopprogramma is altijd het actieve schema (oude Garmin Coach-planning is opgeruimd)
 
 /* ---------- tijd-helpers ---------- */
 function runParseMin(raw){            // "3", "3,5", "3:30" -> seconden | null bij ongeldig
@@ -965,14 +974,11 @@ function runDefaultTemplates(){
 }
 function runDefaultSettings(){
   return {
-    replaceGarminCoach:true,            // dit programma is het actieve hardloopschema; oude Coach-planning staat uit
     trainingDays:['tue','sat'],         // voorlopige standaarddagen (aanpasbaar)
     currentTemplateId:'A',
     paused:false, pausedFrom:null,
     planWeeksAhead:2,
-    autoLinkGarmin:true,                // Garmin-run koppelen aan geplande training als dat eenduidig is
-    physioNote:true,
-    thresholds:{ greenPainMax:0, painOrange:1, painRed:6, energyOrange:5, energyRed:2, painDuringBad:5, goodMaxPain:3, staleDays:28 },
+    thresholds:{ greenPainMax:0, painOrange:1, painRed:6, energyOrange:5, energyRed:2, painDuringBad:5, goodMaxPain:3, staleDays:28 },   // vaste grenzen (niet meer in beeld)
   };
 }
 function runDefaultProgram(){
@@ -1045,7 +1051,6 @@ function runLinkActivity(sesId, extId){
 }
 /* na een Garmin-import: alleen koppelen als het eenduidig is (precies één run die dag, precies één open training die dag) */
 function runAutoLinkAfterImport(newActs){
-  if(!RP().settings.autoLinkGarmin) return 0;
   let n = 0;
   for(const a of (newActs||[])){
     if(!runIsRunActivity(a)) continue;
@@ -1065,13 +1070,18 @@ function runResultOf(s){
 }
 
 /* ---------- registratie: voor / na / volgende ochtend ---------- */
-/* voor-controle van een dag. Energie is één waarde met de Ochtendcheck (dailyLogs); een oude energie die alleen
-   bij Hardlopen is opgeslagen, telt alleen als de Ochtendcheck van die dag geen energie heeft */
+/* gegevens van een dag voor de herstelstatus, uit de Ochtendcheck (dailyLogs): energie, pijn linkerbeen,
+   klachten bij wandelen of traplopen en je eigen beoordeling van Vandaag. Oude antwoorden die vroeger bij
+   Hardlopen zijn ingevuld (checks) blijven gelden voor de dagen waarop de Ochtendcheck ze niet heeft. */
 function runPre(date){
-  const c = RP().checks[date] || null, l = (CB && CB.dailyLogs) ? CB.dailyLogs[date] : null, e = l ? num(l.energy) : null;
-  if(!c && e==null) return null;
+  const c = RP().checks[date] || null, l = (CB && CB.dailyLogs) ? CB.dailyLogs[date] : null;
+  const e = l ? num(l.energy) : null, p = l ? num(l.pain) : null, ws = l ? runBool(l.walkStairs) : null, own = l && RUN_LIGHT[l.traffic] ? l.traffic : null;
+  if(!c && e==null && p==null && ws==null && !own) return null;
   const m = { ...(c||{}) };
   if(e!=null){ m.energy = e; m.energyFrom = 'ochtendcheck'; }
+  if(num(m.painLeft)==null && p!=null) m.painLeft = p;
+  if(ws!=null && typeof m.painWalking!=='boolean'){ m.painWalking = ws; m.painStairs = ws; m.walkStairs = ws; }
+  if(own) m.own = own;
   return m;
 }
 const runBool = v => v==='ja' ? true : v==='nee' ? false : null;
@@ -1079,15 +1089,26 @@ const runBoolStr = v => v===true ? 'ja' : v===false ? 'nee' : '';
 function runPreComplete(c){ return !!c && num(c.energy)!=null && num(c.painLeft)!=null && typeof c.painWalking==='boolean' && typeof c.painStairs==='boolean'; }
 const runPostComplete = p => !!p && num(p.rpe)!=null && num(p.painDuring)!=null && typeof p.painIncreased==='boolean' && typeof p.gaitChanged==='boolean';
 const runNextComplete = n => !!n && !!n.trend && num(n.energy)!=null;
+/* de ochtend na een training: een oud ingevuld formulier geldt; anders vergelijkt de app de pijn linkerbeen uit de
+   Ochtendcheck van de dag erna met die van de trainingsdag (hoger = klachten toegenomen) */
+function runNextOf(s){
+  if(runNextComplete(s.next)) return s.next;
+  const d1 = addDays(s.date, 1); if(d1 > todayISO()) return null;
+  const l1 = (CB && CB.dailyLogs) ? CB.dailyLogs[d1] : null, after = l1 ? num(l1.pain) : null; if(after==null) return null;
+  const pb = runPre(s.date), before = pb ? num(pb.painLeft) : null, th = RP().settings.thresholds;
+  const trend = before==null ? (after>=th.painRed ? 'toegenomen' : 'gelijk') : after>before ? 'toegenomen' : after<before ? 'weg' : 'gelijk';
+  return { trend, after, before, from:'ochtendcheck' };
+}
 
 /* uitkomst van één uitgevoerde training */
 function runOutcome(s){
   const th = RP().settings.thresholds;
-  if(!runPostComplete(s.post) || !runNextComplete(s.next)){
-    const miss = []; if(!runPostComplete(s.post)) miss.push('na de training'); if(!runNextComplete(s.next)) miss.push('de volgende ochtend');
+  const n = runNextOf(s);
+  if(!runPostComplete(s.post) || !n){
+    const miss = []; if(!runPostComplete(s.post)) miss.push('de vragen na de training'); if(!n) miss.push('de Ochtendcheck van de dag erna (pijn linkerbeen)');
     return { state:'incomplete', text:'Nog niet compleet: '+miss.join(' en ')+'.' };
   }
-  const bad = [], p = s.post, n = s.next;
+  const bad = [], p = s.post;
   if(p.painIncreased===true) bad.push('pijn nam toe tijdens het hardlopen');
   if(p.gaitChanged===true) bad.push('looppatroon veranderde');
   if(n.trend==='toegenomen') bad.push('klachten namen de volgende ochtend toe');
@@ -1105,14 +1126,15 @@ function runReadiness(date){
   let red = false, orange = false;
   const R = t => { red = true; reasons.push({ sev:'red', text:t }); };
   const O = t => { orange = true; reasons.push({ sev:'orange', text:t }); };
-  if(!runPreComplete(pre)){ missing.push('Voor-controle van vandaag is nog niet (volledig) ingevuld'); }
+  if(!runPreComplete(pre)){ missing.push('Ochtendcheck van vandaag is nog niet compleet (energie, pijn linkerbeen, wandelen/traplopen)'); }
   if(pre){
-    if(pre.painWalking===true) R('Klachten tijdens normaal wandelen');
-    if(num(pre.painLeft)!=null && pre.painLeft>=th.painRed) R('Pijn linkerbeen '+pre.painLeft+'/10');
-    if(num(pre.energy)!=null && pre.energy<=th.energyRed) R('Zeer lage energie ('+pre.energy+'/10)');
-    if(num(pre.painLeft)!=null && pre.painLeft>=th.painOrange && pre.painLeft<th.painRed) O('Nog klachten aan het linkerbeen ('+pre.painLeft+'/10)');
-    if(pre.painStairs===true) O('Klachten bij traplopen');
-    if(num(pre.energy)!=null && pre.energy>th.energyRed && pre.energy<=th.energyOrange) O('Beperkte energie ('+pre.energy+'/10)');
+    // één gecombineerde vraag uit de Ochtendcheck (wandelen of traplopen) telt als oranje; de oude losse vraag 'wandelen' blijft rood
+    if(pre.walkStairs===true) O('Klachten bij wandelen of traplopen');
+    else { if(pre.painWalking===true) R('Klachten tijdens normaal wandelen'); if(pre.painStairs===true) O('Klachten bij traplopen'); }
+    if(num(pre.painLeft)!=null && pre.painLeft>=th.painRed) R('Pijn linkerbeen '+pre.painLeft+'/10 (rood vanaf '+th.painRed+')');
+    if(num(pre.energy)!=null && pre.energy<=th.energyRed) R('Zeer lage energie ('+pre.energy+'/10; rood bij '+th.energyRed+' of lager)');
+    if(num(pre.painLeft)!=null && pre.painLeft>=th.painOrange && pre.painLeft<th.painRed) O('Nog klachten aan het linkerbeen ('+pre.painLeft+'/10; groen alleen bij '+th.greenPainMax+')');
+    if(num(pre.energy)!=null && pre.energy>th.energyRed && pre.energy<=th.energyOrange) O('Beperkte energie ('+pre.energy+'/10; oranje bij '+th.energyOrange+' of lager)');
   }
   const last = runDoneSessions().filter(s=>s.date<=date).pop() || null;
   if(!last){ missing.push('Nog geen eerdere training geregistreerd'); }
@@ -1122,7 +1144,7 @@ function runReadiness(date){
     if(oc.state==='incomplete') missing.push('Evaluatie van de vorige training ('+fmt(last.date,{day:'numeric',month:'long'})+') ontbreekt: '+oc.text);
     else if(oc.state==='bad'){ R('Vorige training ('+fmt(last.date,{day:'numeric',month:'long'})+'): '+oc.text.replace('Niet goed verdragen: ','')); }
     else if(oc.state==='mixed') O('Vorige training: '+oc.text);
-    if(ago>th.staleDays) O('Laatste training is '+ago+' dagen geleden — voorzichtig herstarten');
+    if(ago>th.staleDays) O('Laatste training is '+ago+' dagen geleden (meer dan '+th.staleDays+') — voorzichtig herstarten');
   }
   const own = (pre && pre.own && RUN_LIGHT[pre.own]) ? pre.own : null;
   let auto;
@@ -1196,6 +1218,7 @@ function runRestWarnings(s){
   const tpl = runTpl(s.templateId), minRest = tpl ? (num(tpl.minRestDays) ?? 2) : 2, out = [];
   for(const o of RP().sessions){
     if(o.id===s.id || o.status==='cancelled' || o.status==='skipped' || !o.date) continue;
+    if(o.status==='planned' && o.date<todayISO()) continue;          // voorbij en niet gedaan: telt niet als belasting
     const diff = Math.abs(Math.round((parseDate(o.date)-parseDate(s.date))/86400000));
     if(diff>0 && diff-1 < minRest) out.push(`Slechts ${diff-1} rustdag(en) tussen ${fmt(s.date,{day:'numeric',month:'short'})} en ${fmt(o.date,{day:'numeric',month:'short'})} (minimaal ${minRest} gewenst).`);
     if(diff===0) out.push('Er staat op dezelfde dag al een andere training.');
@@ -1205,12 +1228,12 @@ function runRestWarnings(s){
 }
 
 /* ---------- handelingen (alles via één plek, zodat validatie en opslag overal gelijk zijn) ---------- */
-const RUI = { tab:'overview', selId:null, msg:'', msgKind:'', editTplId:null, exportNote:'', scrollTo:null };
+const RUI = { tab:'overview', openId:null, editId:null, msg:'', msgKind:'', scrollTo:null };
 function runMsg(t,k){ RUI.msg = t||''; RUI.msgKind = k||''; }
 function runPlanOn(date, tpl){
   if(!runValidDate(date)) return runMsg('Ongeldige datum.','err');
   const s = runNewSession(date, tpl || runCurrentTpl()); RP().sessions.push(s); RP().sessions.sort(runByDate);
-  RUI.selId = s.id; return s;
+  return s;
 }
 function runSetLevel(id, reason){
   const rp = RP(), t = runTpl(id); if(!t) return;
@@ -1222,11 +1245,6 @@ function runChangeSessionLevel(sesId, tplId){      // sessie wordt een verse kop
   if(s.status==='done'){ return runMsg('Een uitgevoerde training verander je niet achteraf van niveau.','err'); }
   s.templateId = t.id; s.name = t.name + (t.label ? ' – '+t.label : ''); s.steps = runStepsFromParams(t); s.intensity = t.intensity; s.target = { ...(t.target||{type:'none',low:null,high:null}) };
 }
-function runShiftFuture(days){                      // alleen op uitdrukkelijk verzoek
-  let n = 0;
-  RP().sessions.forEach(s=>{ if(s.status==='planned' && s.date>=todayISO()){ s.date = addDays(s.date, days); n++; } });
-  return n;
-}
 
 /* ---------- koppeling met de rest van de app (alleen LEZEN van hardloopresultaten) ---------- */
 /* Eén samengestelde lijst voor weergave: historische Coach-runs + uitgevoerde trainingen uit dit programma.
@@ -1237,7 +1255,7 @@ function allRunRecords(){
   const extra = [];
   for(const s of rp.sessions){
     if(s.status!=='done') continue;
-    const r = runResultOf(s); if(!r || r.missing) continue;
+    const r = runResultOf(s); if(!r || r.missing || (r.durationMin==null && r.distanceKm==null)) continue;      // zonder meetwaarden geen run met lege waarden
     if(s.garminExternalId && base.some(c=>c.garminExternalId===s.garminExternalId)) continue;     // nooit dubbel tellen
     extra.push({ id:'p:'+s.id, date:s.date, done:true, distanceKm:r.distanceKm ?? null, totalMin:r.durationMin ?? null, avgPace:r.avgPace || null,
       avgHr:r.avgHr ?? null, maxHr:r.maxHr ?? null, vo2max:r.vo2max ?? null, continuousMin:null, rpe:(s.post && num(s.post.rpe)!=null) ? num(s.post.rpe) : null,
@@ -1432,23 +1450,7 @@ function weekPlan(wi){
 }
 /* Coach-loopdagen per week: jouw eigen planning (meestal op zondag gemaakt, tussendoor
    aanpasbaar). Alleen wélke weekdagen — geen afstand/tijd vooraf, geen bindend schema. */
-function coachPlanDays(wi){ if(runReplacesCoach()) return runWeekInfo(weekDates(wi)).days; const c = weekPlan(wi).coachDays; return Array.isArray(c) ? c : []; }
-function toggleCoachDay(wi, dk){
-  if(wi<0 || !DOW.includes(dk)) return;
-  const wp = CB.weekPlans[wi] = CB.weekPlans[wi] || {};
-  const cur = Array.isArray(wp.coachDays) ? wp.coachDays.slice() : [];
-  const i = cur.indexOf(dk);
-  if(i>=0) cur.splice(i,1); else cur.push(dk);
-  cur.sort((a,b)=> DOW.indexOf(a)-DOW.indexOf(b));
-  wp.coachDays = cur;
-  saveState(); renderCurrent();
-}
-function coachDayChips(wi){
-  const days = coachPlanDays(wi);
-  return `<div class="chips" style="margin-top:6px;flex-wrap:wrap">${DOW.map(k=>
-    `<button class="btn sm ${days.includes(k)?'active':''}" data-coach-day="${wi}|${k}">${DOW_NL[k]}</button>`
-  ).join('')}</div>`;
-}
+function coachPlanDays(wi){ return runWeekInfo(weekDates(wi)).days; }        // hardloopdagen van die week, uit het programma
 
 /* ===========================================================================
    AFGELEIDE DATA
@@ -1949,14 +1951,11 @@ function renderToday(){
   if(isFuture){
     const wiF = weekIndexFor(d);
     const dkF = dowKey(d);
-    const plannedC = wiF>=0 && coachPlanDays(wiF).includes(dkF);
+    const plannedC = !!runPlannedOn(d);
     html += `<div class="card"><div class="answer"><div class="seg">
       <h4>${esc(fmt(d,{weekday:'long',day:'numeric',month:'long'}))}</h4>
       <div class="small muted">Dag in de toekomst. ${plannedC?'<b>'+runCoachWord()+' gepland.</b> ':''}Registreren kan op de dag zelf.</div>
       ${ctx.focusEx?`<div class="tny muted" style="margin-top:6px">Focus die week: ${esc(ctx.focusEx.name)} leren</div>`:''}
-      ${wiF>=0 && !runReplacesCoach()?`<div class="chips" style="margin-top:10px">
-        <button class="btn sm ${plannedC?'active':''}" data-coach-day="${wiF}|${dkF}">${plannedC?'✓ Coach-run gepland — weghalen':'+ Coach-run plannen op deze dag'}</button>
-      </div>`:''}
     </div></div></div>`;
     html += otherActivitiesPanel(d, { isFuture:true, cardsToday:todayCards(d), primaryType:null });
     setViewHTML('#view-today', html);
@@ -1977,12 +1976,11 @@ function renderToday(){
     html += `<div class="seg"><h4>Vandaag</h4>
       <div class="big">${esc(p.label)}</div>
       <div class="chips" style="margin-top:8px">
-        ${(p.type==='coach' && runReplacesCoach()) ? `<button class="btn primary" data-run-open="${(runPlannedOn(d)||{}).id||''}">Training openen</button>` : `<button class="btn ${p.minimal?'sm':'primary'}" data-add="${p.type}|${d}">${p.minimal?'Run registreren':'Registreren'}</button>
-        ${p.type==='coach' && p.minimal ? `<a href="#" class="tny muted" style="align-self:center" data-coach-unplan="${d}">niet vandaag</a>` : ''}`}
+        ${p.type==='coach' ? `<button class="btn primary" data-run-open="${(runPlannedOn(d)||{}).id||''}">Training openen</button>` : `<button class="btn ${p.minimal?'sm':'primary'}" data-add="${p.type}|${d}">${p.minimal?'Run registreren':'Registreren'}</button>`}
       </div>
     </div>`;
   } else if(ctx.period==='program' && !ctx.logged.coach && !ctx.logged.strengthA && !ctx.logged.strengthB && !ctx.logged.longwalk && !ctx.logged.learning){
-    html += `<div class="seg"><h4>Vandaag</h4><div class="small muted">Niets specifieks gepland — ochtendroutine is voldoende.${weekIndexFor(d)>=0 && !coachPlanDays(weekIndexFor(d)).length ? ' <a href="#" data-view="week">Coach-loopdagen voor deze week instellen →</a>' : ''}</div></div>`;
+    html += `<div class="seg"><h4>Vandaag</h4><div class="small muted">Niets specifieks gepland — ochtendroutine is voldoende.</div></div>`;
   }
   // openstaande weekdoelen — klein en secundair, nooit als primaire taak
   if((ctx.openGoals||[]).length){
@@ -1996,8 +1994,7 @@ function renderToday(){
   if(ctx.plannedCoach && !ctx.logged.coach && ctx.primary && ctx.primary.type!=='coach'){
     html += `<div class="seg"><div class="small">Ook gepland vandaag: <b>${runCoachWord()}</b>
       <div class="chips" style="margin-top:6px">
-        ${runReplacesCoach() ? `<button class="btn sm" data-run-open="${(runPlannedOn(d)||{}).id||''}">Training openen</button>` : `<button class="btn sm" data-add="coach|${d}">Run registreren</button>
-        <a href="#" class="tny muted" style="align-self:center" data-coach-unplan="${d}">niet vandaag</a>`}
+        <button class="btn sm" data-run-open="${(runPlannedOn(d)||{}).id||''}">Training openen</button>
       </div></div></div>`;
   }
   html += `<div class="seg"><div class="lines">
@@ -2028,7 +2025,7 @@ function renderToday(){
     const cl = ok=> ok?'ok':'todo';
     const wiT = weekIndexFor(d);
     const cDays = coachPlanDays(wiT);
-    let rows = `<div class="row"><span class="k">${runCoachWord()}</span><span class="v">${cDays.length?esc(cDays.map(k=>DOW_NL[k]).join(' · ')):(runReplacesCoach()?'geen training gepland':'geen loopdagen ingevuld')} · ${esc(ws.coach.label)}</span></div>`;
+    let rows = `<div class="row"><span class="k">${runCoachWord()}</span><span class="v">${cDays.length?esc(cDays.map(k=>DOW_NL[k]).join(' · ')):'geen training gepland'} · ${esc(ws.coach.label)}</span></div>`;
     if(ws.learning.target>0 && ws.learning.focusExercise){
       rows += `<div class="row"><span class="k">Leermoment ${esc(exName(ws.learning.focusExercise))}</span><span class="v ${ws.learning.met?'ok':'todo'}">${ws.learning.done>0?`${ws.learning.done}× gedaan`:'deze week'}</span></div>`;
     } else if(cfg.consolidation){
@@ -2039,8 +2036,7 @@ function renderToday(){
     rows += `<div class="row"><span class="k">Lange wandeling</span><span class="v ${ws.longWalk.applicable?cl(ws.longWalk.done):'na'}">${ws.longWalk.applicable?(ws.longWalk.done?'✓ gedaan':'nog te doen'):'niet deze week'}</span></div>`;
     rows += `<div class="row"><span class="k">Ochtendroutine</span><span class="v">${ws.routine.done} / 7</span></div>`;
     html += `<div class="card"><h3>Deze week <span class="sub">${esc(ctx.title)}</span></h3><div class="week-track">${rows}</div>
-    ${wiT>=0 && !runReplacesCoach()?`<div class="tny muted" style="margin-top:10px">Coach-loopdagen deze week — jouw planning, tussendoor aanpasbaar:</div>${coachDayChips(wiT)}`:''}
-    ${runReplacesCoach()?`<div class="tny muted" style="margin-top:10px">Hardlooptrainingen plan je onder <a href="#" data-view="running">Hardlopen</a>.</div>`:''}
+    <div class="tny muted" style="margin-top:10px">Hardlooptrainingen plan je onder <a href="#" data-view="running">Hardlopen</a>.</div>
     <p class="tny muted" style="margin-top:8px"><a href="#" data-view="week">Week openen →</a></p></div>`;
   }
 
@@ -2049,15 +2045,16 @@ function renderToday(){
   const g = state.garmin.daily[d];
   // korte stand in de kop, zodat je ook ingeklapt ziet wat er al staat
   const ocBits = [ l.energy!=null&&l.energy!=='' ? 'energie '+l.energy : null, l.stiffness!=null&&l.stiffness!=='' ? 'stijfheid '+l.stiffness : null,
-                   l.pain!=null&&l.pain!=='' ? 'pijn '+l.pain : null, l.weightKg!=null&&l.weightKg!=='' ? nl(l.weightKg)+' kg' : null ].filter(Boolean);
-  return `<details class="acc"><summary>Ochtendcheck <span class="tny muted" style="font-weight:400">· ${ocBits.length ? esc(ocBits.join(' · ')) : 'nog niet ingevuld'}</span></summary><div class="acc-body">
+                   l.pain!=null&&l.pain!=='' ? 'pijn linkerbeen '+l.pain : null, l.walkStairs==='ja' ? 'klachten bij wandelen/traplopen' : null, l.weightKg!=null&&l.weightKg!=='' ? nl(l.weightKg)+' kg' : null ].filter(Boolean);
+  return `<details class="acc" id="ocCard"><summary>Ochtendcheck <span class="tny muted" style="font-weight:400">· ${ocBits.length ? esc(ocBits.join(' · ')) : 'nog niet ingevuld'}</span></summary><div class="acc-body">
     <div class="form-grid cols-4">
       ${fInput('Energie 1–10','currentBlock.dailyLogs.'+d+'.energy', l.energy,'number','inputmode="numeric" min="1" max="10"')}
       ${fInput('Spierpijn/stijfheid 0–10','currentBlock.dailyLogs.'+d+'.stiffness', l.stiffness,'number','inputmode="numeric" min="0" max="10"')}
-      ${fInput('Pijn 0–10','currentBlock.dailyLogs.'+d+'.pain', l.pain,'number','inputmode="numeric" min="0" max="10"')}
+      ${fInput('Pijn linkerbeen 0–10','currentBlock.dailyLogs.'+d+'.pain', l.pain,'number','inputmode="numeric" min="0" max="10"')}
+      ${fSelect('Klachten bij wandelen of traplopen?','currentBlock.dailyLogs.'+d+'.walkStairs', l.walkStairs, [['','—'],['nee','nee'],['ja','ja']])}
       ${fInput('Gewicht (kg)','currentBlock.dailyLogs.'+d+'.weightKg', l.weightKg,'number','inputmode="decimal" step="0.1"')}
     </div>
-    <p class="tny muted" style="margin-top:6px">Energie, stijfheid en pijn van vandaag voeden het <b>Dagadvies</b> bovenaan. Een geregistreerde 0 (bv. geen pijn) is een geldige waarde.</p>
+    <p class="tny muted" style="margin-top:6px">Dit voedt het <b>Dagadvies</b> bovenaan en je status bij Hardlopen. Een geregistreerde 0 (geen pijn) is een geldige waarde.</p>
     <details class="acc"><summary>Meer — slaap, HRV/RHR, notities</summary><div class="acc-body">
       ${g ? `<p class="tny" style="color:var(--green)">✓ Garmin beschikbaar voor deze dag — HRV ${nl(g.nightHrv)} ms · RHR ${nl(g.restingHr)} · slaap ${nl(g.sleepDuration)} u. Hieronder alleen invullen als je handmatig wilt afwijken/aanvullen.</p>` : ''}
       <div class="form-grid cols-4">
@@ -2219,7 +2216,7 @@ function dayAdviceBlock(d, primaryType){
     return `<div class="dagadvies">
       <div class="lbl">Dagadvies</div>
       <div class="status">⚪ Nog niet te bepalen</div>
-      <div class="sub">vul energie, stijfheid en pijn in bij de Ochtendcheck</div>
+      <div class="sub">vul energie, stijfheid en pijn linkerbeen in bij de Ochtendcheck</div>
     </div>`;
   }
   const ownPanel = own
@@ -2288,7 +2285,7 @@ function renderWeek(){
     ${Array.from({length:blockWeeks()},(_,i)=>`<button class="btn sm ${i===wi?'active':''}" data-week="${i}">W${i+1}</button>`).join('')}
   </div></div>`;
 
-  let goalRows = `<div class="row"><span class="k">${runReplacesCoach() ? 'Hardlopen — eigen programma' : 'Garmin Coach — volg Greg'}</span><span class="v">${esc(ws.coach.label)}</span></div>`;
+  let goalRows = `<div class="row"><span class="k">Hardlopen — eigen programma</span><span class="v">${esc(ws.coach.label)}</span></div>`;
   if(cfg.learningTarget>0 && focusEx){
     goalRows += `<div class="row"><span class="k">Leermoment ${esc(focusEx.name)} · ${cfg.learningTarget}×</span><span class="v ${ws.learning.met?'ok':'todo'}">${ws.learning.done>0?`${ws.learning.done}× gedaan`:'deze week'}</span></div>`;
   } else if(cfg.consolidation){
@@ -2308,13 +2305,8 @@ function renderWeek(){
     : 'Gemiste trainingen niet inhalen. Geen automatische dubbele sessies.'} Registreren doe je op het Vandaag-scherm, op de dag zelf.</p></div>`;
 
   html += `<details class="acc"><summary>Voorstellen &amp; instellingen voor deze week <span class="tny muted">niet bindend</span></summary><div class="acc-body">
-    ${runReplacesCoach() ? `<div style="margin-bottom:12px" class="tny muted">Hardloopdagen plan je onder <a href="#" data-view="running">Hardlopen › Trainingsprogramma</a> (de oude Coach-loopdagen staan uit).</div>` : `<div style="margin-bottom:12px">
-      <label class="tny muted">Coach-loopdagen deze week — welke dagen loop je (van Greg / jouw planning)</label>
-      ${coachDayChips(wi)}
-      <p class="tny muted" style="margin-top:4px">Alleen de dagen — geen afstand of tijd vooraf. Op zo'n dag toont Vandaag "Garmin Coach-run — gepland". Tussendoor aanpassen mag altijd.</p>
-    </div>`}
+    <div style="margin-bottom:12px" class="tny muted">Hardloopdagen plan je onder <a href="#" data-view="running">Hardlopen › Trainingsprogramma</a>.</div>
     <div class="form-grid cols-4">
-      ${runReplacesCoach() ? '' : fInput('Coach-sessies deze week (van Greg)','currentBlock.weekPlans.'+wi+'.coachTarget', wp.coachTarget,'number','inputmode="numeric"')}
       ${fSelect('Voorstel-dag Kracht A','currentBlock.weekPlans.'+wi+'.strengthADay', wp.strengthADay, [['','geen voorstel'],...DOW.map(k=>[k,DOW_NL[k]])])}
       ${fSelect('Voorstel-dag Kracht B','currentBlock.weekPlans.'+wi+'.strengthBDay', wp.strengthBDay, [['','geen voorstel'],...DOW.map(k=>[k,DOW_NL[k]])])}
       ${fSelect('Voorstel-dag lange wandeling','currentBlock.weekPlans.'+wi+'.longWalkDay', wp.longWalkDay, [['','geen voorstel'],...DOW.map(k=>[k,DOW_NL[k]])])}
@@ -2363,7 +2355,7 @@ function renderWeek(){
     ${Object.keys(mins.done).map(k=>`<tr><td>${esc(k)}${k==='ochtendroutine'?` <span class="tny muted">(${mins.routineDays}/7 dagen)</span>`:''}</td><td class="num">${mins.plan[k]==null?'—':mins.plan[k]+' min'}</td><td class="num">${mins.done[k]?mins.done[k]+' min':'—'}</td></tr>`).join('')}
     <tr class="group"><td>Uitgevoerd totaal</td><td class="num">—</td><td class="num">${mins.doneTotal} min</td></tr>
     </tbody></table></div>
-    <p class="tny muted">Gepland is bewust vaak "—": ${runReplacesCoach()?'hardloopduur komt uit je trainingen bij Hardlopen':'Garmin Coach-duur komt van Greg'}, krachtduur uit je eigen invoer, wandelingen uit de geregistreerde tijd. De <b>ochtendroutine wordt geteld in dagen</b> (${mins.routineDays}/7), niet in minuten — de ±${mins.routineTarget} min is een richttijd, geen meting. Alleen een handmatig ingevulde routineduur telt in de minuten.</p></div></details>`;
+    <p class="tny muted">Gepland is bewust vaak "—": hardloopduur komt uit je trainingen bij Hardlopen, krachtduur uit je eigen invoer, wandelingen uit de geregistreerde tijd. De <b>ochtendroutine wordt geteld in dagen</b> (${mins.routineDays}/7), niet in minuten — de ±${mins.routineTarget} min is een richttijd, geen meting. Alleen een handmatig ingevulde routineduur telt in de minuten.</p></div></details>`;
 
   html += `<details class="acc"><summary>Blok-instellingen</summary><div class="acc-body"><div class="form-grid cols-4">
     ${fInput('Startdatum blok','currentBlock.startDate', CB.startDate,'date')}
@@ -2432,10 +2424,10 @@ function coachCard(d){
   const p = idx>=0 ? `currentBlock.coachRuns.${idx}.` : `__d.coach.${d}.`;
   const summary = idx>=0 ? [r.type, r.distanceKm!=null&&nl(r.distanceKm)+' km', r.totalMin!=null&&nl(r.totalMin)+' min', r.avgPace, r.done===true?'✓ uitgevoerd':r.done===false?'niet uitgevoerd':'uitvoering ?'].filter(Boolean).join(' · ') : '';
   const body = `
-    <p class="tny muted" style="margin:0 0 10px">${runReplacesCoach()?'Losse hardloopregistratie buiten het programma. Trainingen uit je hardloopprogramma registreer je bij Hardlopen.':'De app ontwerpt geen loopschema. Voer in of importeer wat Greg gepland heeft en wat je hebt uitgevoerd.'}</p>
+    <p class="tny muted" style="margin:0 0 10px">Losse hardloopregistratie buiten het programma. Trainingen uit je hardloopprogramma registreer je bij Hardlopen.</p>
     <div class="form-grid">
       ${mText('Type Coach-training',p+'type', r.type,'bv. easy run / tempo')}
-      ${mSelect(runReplacesCoach()?'Gepland door Garmin Coach (historisch)':'Gepland door Greg',p+'planned', r.planned, [['','—'],['ja','ja'],['nee','nee']])}
+      ${mSelect('Gepland door Garmin Coach (historisch)',p+'planned', r.planned, [['','—'],['ja','ja'],['nee','nee']])}
       ${mSelect('Uitgevoerd',p+'done', idx>=0?(r.done===true?'ja':r.done===false?'nee':''):(r.done??''), [['','— nog niet bekend'],['ja','ja'],['nee','nee']])}
       ${mText('Geplande inhoud',p+'plannedContent', r.plannedContent)}
       ${mText('Uitgevoerde inhoud',p+'doneContent', r.doneContent)}
@@ -3609,7 +3601,7 @@ function renderGarmin(){
       ${garminFileHandle ? `<button class="btn" id="garminRefreshBtn">Garmin-data vernieuwen</button>` : ''}
       <input type="file" id="garminJsonInput" class="hidden" accept=".zip,.json,application/zip,application/json">
     </div>
-    ${runReplacesCoach() ? `<p class="tny muted" style="margin-top:10px">Nieuwe Garmin-runs worden bij het inlezen niet meer automatisch een Coach-run. Ze worden gekoppeld aan een geplande training onder <a href="#" data-view="running">Hardlopen</a> (automatisch als dat eenduidig is, anders kies je zelf).</p>` : `<label class="small" style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" data-garmin-auto ${garminAutoCoachOn()?'checked':''}> <span>Nieuwe hardloop-activiteiten bij het inlezen <b>automatisch</b> als Coach-run overnemen (Garmin leidend, ook voor RPE). Heb je op die dag al een handmatige run, dan wordt die gekoppeld en niet verdubbeld.</span></label>`}
+    <p class="tny muted" style="margin-top:10px">Nieuwe Garmin-runs worden vanzelf gekoppeld aan de geplande training van die dag. Lukt dat niet, dan staan ze bij <a href="#" data-view="running">Hardlopen</a> › Overzicht › Runs zonder training.</p>
     <p class="tny muted" style="margin-top:6px" id="garminZipStatus"></p>
     <details class="acc" style="margin-top:8px"><summary>Details</summary><div class="acc-body">
       <p class="small">Je kunt hier direct de Garmin "Uw gegevens exporteren"-ZIP kiezen — de app leest die lokaal in de browser uit (de ZIP zelf wordt nergens geüpload). Het oudere pad via <code>garmin_export_to_summary.py</code> → <code>garmin_summary.json</code> (zie GARMIN_JSON_SPEC.md) werkt ook nog, bijvoorbeeld voor het testbestand. Handmatige invoer (RPE, pijn, energie, techniek) blijft altijd nodig.</p>
@@ -3674,7 +3666,7 @@ function renderActs(){
       ${isRun ? `<div class="addbar" style="margin-top:10px">
         ${linked
           ? `<span class="pill done">✓ Coach-run (${esc(fmt(linked.date,{day:'numeric',month:'short'}))})</span> <button class="btn" data-garmin-coach="${esc(a.externalId)}">Bijwerken</button>`
-          : (runReplacesCoach() ? ((runLinkedMap()[a.externalId]) ? `<span class="pill done">✓ Gekoppeld aan training (Hardlopen)</span> <button class="btn" data-run-open-act="${esc(a.externalId)}">Bekijken</button>` : `<button class="btn" data-run-open-act="${esc(a.externalId)}">Koppelen aan training (Hardlopen)</button>`)
+          : (true ? ((runLinkedMap()[a.externalId]) ? `<span class="pill done">✓ Gekoppeld aan training (Hardlopen)</span> <button class="btn" data-run-open-act="${esc(a.externalId)}">Bekijken</button>` : `<button class="btn" data-run-open-act="${esc(a.externalId)}">Koppelen aan training (Hardlopen)</button>`)
                                   : `<button class="btn" data-garmin-coach="${esc(a.externalId)}">Gebruik als Coach-run</button>`)}
         ${a.date < blockStart() ? `<button class="btn" data-garmin-week0="${esc(a.externalId)}">Gebruik als Week 0-conditiemeting</button>` : ''}
       </div>` : `<p class="tny muted" style="margin-top:6px">Wandel-/overige activiteit — bewaard voor context; geen automatische koppeling.</p>`}
@@ -3707,8 +3699,8 @@ function renderMethod(){
 
   html += `<div class="grid cols-2">
     <div class="card"><h3>Trainingshiërarchie</h3><ol>
-      <li>${runReplacesCoach()?'<b>Hardlopen</b> (eigen programma in Atempo) bepaalt de looptraining; jij beslist over opbouw. Garmin Coach geldt alleen nog voor historische registraties.':'<b>Garmin Coach (Greg)</b> bepaalt de hardlooptraining. De app ontwerpt géén loopschema en voegt geen hardlooptraining toe.'}</li>
-      <li><b>Twee krachttrainingen</b> (Kracht A + B) per normale week, ${runReplacesCoach()?'flexibel rond de hardlooptrainingen.':'flexibel rond de Coach-sessies.'}</li>
+      <li><b>Hardlopen</b> (eigen programma in Atempo) bepaalt de looptraining; jij beslist over opbouw. Garmin Coach geldt alleen nog voor historische registraties.</li>
+      <li><b>Twee krachttrainingen</b> (Kracht A + B) per normale week, flexibel rond de hardlooptrainingen.</li>
       <li><b>Ochtendroutine</b>: eerst meditatie · contemplatie · gebed, dan de lichamelijke routine. Mentale onderdelen krijgen geen prestatie-KPI.</li>
     </ol></div>
     <div class="card"><h3>Wat telt als succes</h3><ul>
@@ -4358,7 +4350,7 @@ function garminCommitImport(){
       if(a.rpe != null) state.currentBlock.coachRuns.forEach(r=>{ if(r.garminExternalId === a.externalId) r.rpe = a.rpe; });
     }
     if(auto.nieuw || auto.gekoppeld) autoMsg = 'Import klaar.'+'\n\n'+'Automatisch als Coach-run overgenomen (Garmin leidend): '+auto.nieuw+' nieuw, '+auto.gekoppeld+' gekoppeld aan een bestaande run.'+'\n\n'+'Wil je een run niet meetellen? Verwijder die Coach-run op Vandaag; bij een volgende import komt hij niet terug.';
-    if(runReplacesCoach() && newRuns.length){ const n = runAutoLinkAfterImport(newRuns); autoMsg = 'Import klaar. '+newRuns.length+' nieuwe hardloop-activiteit(en) gevonden.'+(n?' '+n+' automatisch gekoppeld aan een geplande training.':'')+'\n\nOnder Hardlopen › Garmin & resultaten kun je de rest zelf koppelen.'; }
+    if(newRuns.length){ const n = runAutoLinkAfterImport(newRuns); autoMsg = 'Import klaar. '+newRuns.length+' nieuwe hardloop-activiteit(en) gevonden.'+(n?' '+n+' automatisch gekoppeld aan een geplande training.':'')+'\n\nDe rest staat bij Hardlopen › Overzicht › Runs zonder training.'; }
     state.garmin.activities.sort((x,y)=> (x.startTime||x.date).localeCompare(y.startTime||y.date));
     state.garmin.meta = { fileName: pv.fileName || null, generatedAt: gen || null, source: pv.parsed.source || null, lastImportedAt: now };
     saveState();
@@ -4372,7 +4364,7 @@ function garminCommitImport(){
   if(autoMsg) alert(autoMsg);
 }
 
-function garminAutoCoachOn(){ return CB.garminAutoCoach !== false && !runReplacesCoach(); }
+function garminAutoCoachOn(){ return false; }          // Garmin-runs worden geen Coach-runs meer; ze worden gekoppeld aan je trainingen
 /* Garmin-activiteit -> Coach-run (idempotent op garminExternalId; handmatige velden blijven).
    Zoekt eerst een bestaande run om te koppelen (zelfde dag, ±0,5 km, zonder koppeling of met kapotte koppeling). */
 /* EENMALIG HERSTEL (3 nov 2026): op 1 nov 19:16 zijn 10 oude Garmin Coach-runs per ongeluk als "Niveau A"
@@ -4457,7 +4449,7 @@ function buildPrint(mode){
   if(mode==='week'){
     const wi = ui.weekIdx; const ds = weekDates(wi); const ws = weekStatus(wi);
     const cfg = weekConfig(wi); const focusEx = cfg.focusExercise ? state.exercises.find(x=>x.id===cfg.focusExercise) : null;
-    const goalBits = [`${runReplacesCoach()?'Hardlopen':'Coach'} ${esc(ws.coach.label)}`];
+    const goalBits = [`Hardlopen ${esc(ws.coach.label)}`];
     if(cfg.learningTarget>0 && focusEx) goalBits.push(`Leermoment ${esc(focusEx.name)} ${ws.learning.met?'✓':'deze week'}`);
     if(cfg.consolidation) goalBits.push('Consolidatieweek — geen nieuwe oefening');
     if(ws.strengthA.applicable) goalBits.push(`Kracht A ${ws.strengthA.done?'✓':'nog te doen'}`);
@@ -4540,8 +4532,6 @@ document.addEventListener('click', e=>{
     return;
   }
   const apr = e.target.closest('[data-apply-prev-routine]'); if(apr){ e.preventDefault(); applyPreviousRoutineValues(apr.dataset.applyPrevRoutine); return; }
-  const cdt = e.target.closest('[data-coach-day]'); if(cdt){ e.preventDefault(); const [wi,dk]=cdt.dataset.coachDay.split('|'); toggleCoachDay(+wi, dk); return; }
-  const cup = e.target.closest('[data-coach-unplan]'); if(cup){ e.preventDefault(); const dd=cup.dataset.coachUnplan; toggleCoachDay(weekIndexFor(dd), dowKey(dd)); return; }
   const ost = e.target.closest('[data-own-set]'); if(ost){ e.preventDefault(); const [dd,s]=ost.dataset.ownSet.split('|'); ensureLog(dd).traffic = s; saveState(); renderToday(); return; }
   const ocl = e.target.closest('[data-own-clear]'); if(ocl){ e.preventDefault(); const dd=ocl.dataset.ownClear; if(CB.dailyLogs[dd]) CB.dailyLogs[dd].traffic = null; saveState(); renderToday(); return; }
   const mvs = e.target.closest('[data-move-start]'); if(mvs){ const [kind,id]=mvs.dataset.moveStart.split('|'); ui.moveOn={kind,id}; renderToday(); return; }
@@ -4614,7 +4604,6 @@ document.addEventListener('change', e=>{
     (l.checks = l.checks || {}).routine = true;
     saveState(); renderToday(); return;
   }
-  if(el.hasAttribute('data-garmin-auto')){ CB.garminAutoCoach = el.checked; saveState(); renderGarmin(); return; }
   if(el.dataset.check){
     const l = CB.dailyLogs[ui.date] = CB.dailyLogs[ui.date] || {};
     l.checks = l.checks || {}; l.checks[el.dataset.check] = el.checked;
@@ -5148,7 +5137,6 @@ function fitExportAllLevels(nowSec){
 /* ===========================================================================
    HARDLOPEN — deel 3: schermen, bewerken, export en afhandeling van acties
    =========================================================================== */
-const RUN_INTENS = { rustig:'Rustig tempo', gemiddeld:'Gemiddeld tempo', pittig:'Pittig tempo' };
 const RUN_FIT_VALIDATED = true;          // ingebouwde controle (fitVerify) draait bij élke export; zie controleverslag voor de SDK-test
 
 /* ---------- kleine bouwstenen ---------- */
@@ -5167,10 +5155,9 @@ function runTimelineSVG(steps, h){
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" class="run-tl" role="img" aria-label="Tijdlijn van de training">${r}</svg>`;
 }
 const runLegend = () => `<div class="run-legend">${['warmup','run','walk','cooldown'].map(t=>`<span><i style="background:${RUN_STEP[t].color}"></i>${runSymSVG(t,13,'#6b7872')} ${RUN_STEP[t].nl}</span>`).join('')}</div>`;
-function runTotalsLine(steps, intensity, target){
+function runTotalsLine(steps){
   const T = runTotals(steps);
-  const tg = target && target.type==='hr' && num(target.low) ? ` · hartslag ${target.low}–${target.high} bpm` : (target && target.type==='pace' && num(target.low) ? ` · tempo ${secToPace(target.low)}–${secToPace(target.high)} /km` : '');
-  return `<div class="run-totals"><b>${runMinLabel(T.total)}</b> totaal · hardlopen <b>${runMinLabel(T.run)}</b> · wandelen <b>${runMinLabel(T.walk)}</b> <span class="tny muted">(waarvan opwarmen/afkoelen ${runMinLabel(T.warm+T.cool)})</span> · <b>${T.intervals}</b> ${T.intervals===1?'blok':'intervallen'} · ${esc(RUN_INTENS[intensity]||'Rustig tempo')}${tg}</div>`;
+  return `<div class="run-totals"><b>${runMinLabel(T.total)}</b> totaal · hardlopen <b>${runMinLabel(T.run)}</b> · wandelen <b>${runMinLabel(T.walk)}</b> <span class="tny muted">(waarvan opwarmen/afkoelen ${runMinLabel(T.warm+T.cool)})</span> · <b>${T.intervals}</b> ${T.intervals===1?'blok':'intervallen'}</div>`;
 }
 function runInp(label, path, val, o){
   o = o || {};
@@ -5191,374 +5178,255 @@ function runDateLabel(d){ return fmt(d,{weekday:'long',day:'numeric',month:'long
 function runDateShort(d){ return fmt(d,{weekday:'short',day:'numeric',month:'short'}); }
 
 /* ---------- kopregel + tabs ---------- */
+/* twee tabbladen: Overzicht (wat nu nodig is) en Trainingsprogramma (kalender + niveaus).
+   Alles van één training (aanpassen, Garmin, resultaat) opent onder die training in de kalender. */
 function renderRunning(){
-  const tabs = [['overview','Overzicht'],['program','Trainingsprogramma'],['edit','Training aanpassen'],['garmin','Garmin & resultaten']];
-  let html = `<div class="pagehead"><div class="eyebrow">Persoonlijk programma</div><h2>Hardlopen</h2>
-    <p>Rustig opbouwen, pijnvrij blijven. Jij bepaalt wanneer je traint en wanneer je verder opbouwt — de app denkt mee, maar beslist niet.</p></div>
+  if(RUI.tab!=='overview' && RUI.tab!=='program') RUI.tab = 'program';      // oude tabbladen bestaan niet meer
+  const tabs = [['overview','Overzicht'],['program','Trainingsprogramma']];
+  let html = `<div class="pagehead"><div class="eyebrow">Persoonlijk programma</div><h2>Hardlopen</h2></div>
     <div class="run-tabs no-print">${tabs.map(([k,t])=>`<button class="btn sm ${RUI.tab===k?'active':''}" data-run-tab="${k}">${t}</button>`).join('')}</div>`;
   if(RUI.msg) html += `<div class="run-msg ${RUI.msgKind==='err'?'err':''}">${esc(RUI.msg)}</div>`;
-  html += ({ overview:runViewOverview, program:runViewProgram, edit:runViewEdit, garmin:runViewGarmin }[RUI.tab] || runViewOverview)();
+  html += (RUI.tab==='program' ? runViewProgram : runViewOverview)();
   setViewHTML('#view-running', html);
+  if(RUI.scrollTo){ const el = document.getElementById('run-'+RUI.scrollTo); RUI.scrollTo = null; if(el) setTimeout(()=>el.scrollIntoView({ block:'center', behavior:'smooth' }), 30); }
 }
 
-/* ---------- formulieren voor/na/volgende ochtend (compact) ---------- */
-function runPreForm(date){
-  const c = runPre(date) || {}, base = '__run.pre.'+date+'.';
-  return `<div class="form-grid cols-4">
-      ${runSel('Energie (1–10)', base+'energy', c.energy, runNumOpts(1,10))}
-      ${runSel('Pijn linkerbeen (0–10)', base+'painLeft', c.painLeft, runNumOpts(0,10))}
-      ${runSel('Klachten bij normaal wandelen?', base+'painWalking', runBoolStr(c.painWalking), runYesNo)}
-      ${runSel('Klachten bij traplopen?', base+'painStairs', runBoolStr(c.painStairs), runYesNo)}
-    </div><div class="tny muted">Energie is dezelfde als in je Ochtendcheck: aanpassen kan hier of daar.</div>${runInp('Bijzonderheden', base+'note', c.note, { ph:'optioneel' })}`;
-}
+/* ---------- vragen na de training ---------- */
 function runPostForm(s){
   const p = s.post || {}, base = '__run.post.'+s.id+'.';
   return `<div class="form-grid cols-4">
-      ${runSel('Inspanning RPE (1–10)', base+'rpe', p.rpe, runNumOpts(1,10))}
+      ${runSel('Inspanning (1–10)', base+'rpe', p.rpe, runNumOpts(1,10))}
       ${runSel('Pijn tijdens hardlopen (0–10)', base+'painDuring', p.painDuring, runNumOpts(0,10))}
       ${runSel('Pijn nam toe tijdens training?', base+'painIncreased', runBoolStr(p.painIncreased), runYesNo)}
       ${runSel('Looppatroon veranderde?', base+'gaitChanged', runBoolStr(p.gaitChanged), runYesNo)}
     </div>${runInp('Bijzonderheden', base+'note', p.note, { ph:'optioneel' })}`;
 }
-function runNextForm(s){
-  const n = s.next || {}, base = '__run.next.'+s.id+'.';
-  return `<div class="form-grid cols-4">
-      ${runSel('Klachten vanochtend', base+'trend', n.trend, [['','—'],['weg','verdwenen'],['gelijk','gelijk gebleven'],['toegenomen','toegenomen']])}
-      ${runSel('Energie vanochtend (1–10)', base+'energy', n.energy, runNumOpts(1,10))}
-    </div>${runInp('Bijzonderheden', base+'note', n.note, { ph:'optioneel' })}`;
-}
 
-/* resultaat-keuze voor één training: Garmin-run koppelen of zonder Garmin afronden */
-function runResultPicker(s){
-  if(s.status==='done'){
-    const r = runResultOf(s), a = runActivity(s.garminExternalId);
-    let h = `<div class="small"><b>Uitgevoerd</b>`;
-    if(a) h += ` — gekoppeld aan Garmin-activiteit ${esc(fmt(a.date,{day:'numeric',month:'short'}))} ${a.startTime?esc(new Date(a.startTime).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})):''}: ${a.distanceKm!=null?nl(a.distanceKm)+' km':''}${a.durationMin!=null?' · '+nl(round(a.durationMin,1))+' min':''}${a.avgPace?' · '+a.avgPace+'/km':''}${a.avgHr!=null?' · gem. HR '+a.avgHr:''}`;
-    else if(s.garminExternalId) h += ` — <span class="warnline" style="display:inline-block;margin:0">de gekoppelde Garmin-activiteit staat niet (meer) in je data</span>`;
-    else h += ' — zonder Garmin-activiteit' + (r && r.durationMin ? ` · ${nl(r.durationMin)} min`:'') + (r && r.distanceKm ? ` · ${nl(r.distanceKm)} km`:'');
-    h += `</div><div class="run-actions">${runBtn('unlink|'+s.id,'Koppeling/uitvoering ongedaan maken','sm')}</div>`;
-    return h;
-  }
+/* ---------- resultaat van één training ---------- */
+const runTime = a => a && a.startTime ? new Date(a.startTime).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}) : '';
+function runResultLine(s){
+  const a = runActivity(s.garminExternalId), r = runResultOf(s);
+  if(a) return `✓ ${[a.distanceKm!=null?nl(a.distanceKm)+' km':'', a.durationMin!=null?nl(round(a.durationMin,1))+' min':'', a.avgPace?esc(a.avgPace)+' /km':'', a.avgHr!=null?'hartslag '+a.avgHr:''].filter(Boolean).join(' · ')}`;
+  if(s.garminExternalId) return 'De gekoppelde run staat niet (meer) in je gegevens.';
+  return '✓ Gedaan zonder Garmin' + (r && r.durationMin ? ' · '+nl(r.durationMin)+' min' : '') + (r && r.distanceKm ? ' · '+nl(r.distanceKm)+' km' : '');
+}
+/* een geplande training op of na de dag zelf: run koppelen, zonder Garmin afronden of overgeslagen */
+function runResultButtons(s){
   const c = runCandidates(s.date);
-  let h = `<div class="small muted">Hoe is deze training gegaan?</div><div class="run-actions">`;
-  c.forEach(a=>{ h += runBtn('link|'+s.id+'|'+a.externalId, `Koppel Garmin-run ${a.startTime?esc(new Date(a.startTime).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})):''} · ${a.distanceKm!=null?nl(a.distanceKm)+' km':'?'} · ${a.durationMin!=null?nl(round(a.durationMin,1))+' min':'?'}`, 'primary sm'); });
-  h += runBtn('doneManual|'+s.id, c.length ? 'Gedaan, zonder Garmin-run' : 'Gedaan (zonder Garmin)', c.length?'sm':'primary sm') + runBtn('skip|'+s.id,'Overgeslagen','sm') + `</div>`;
-  if(c.length>1) h += `<div class="tny muted">Er zijn meerdere Garmin-runs op deze dag — kies welke bij deze training hoort.</div>`;
-  return h;
+  return c.map(a=>runBtn('link|'+s.id+'|'+a.externalId, `Koppel run ${esc(runTime(a))} · ${a.distanceKm!=null?nl(a.distanceKm)+' km':'?'}`, 'primary sm')).join('')
+    + runBtn('doneManual|'+s.id, 'Gedaan zonder Garmin', c.length?'sm':'primary sm') + runBtn('skip|'+s.id, 'Overgeslagen', 'sm');
 }
-
-/* ---------- OVERZICHT ---------- */
-function runViewOverview(){
-  const rp = RP(), today = todayISO(); let h = '';
-  if(rp.settings.paused) h += `<div class="warnline">⏸ Programma gepauzeerd${rp.settings.pausedFrom?' sinds '+esc(fmt(rp.settings.pausedFrom,{day:'numeric',month:'long'})):''}. Er worden geen trainingen voorgesteld. ${runBtn('resume','Hervatten','sm')}</div>`;
-
-  /* achterstallige trainingen: nog 'gepland' maar de datum is voorbij — niet automatisch als gedaan of gemist beschouwen */
-  const od = runOverdue();
-  if(od.length) h += `<div class="card"><h3>Nog te verwerken <span class="sub">${od.length}</span></h3>
-    <p class="small muted">Deze trainingen stonden gepland maar zijn niet afgerond. Ze tellen niet als uitgevoerd én niet als mislukt — jij kiest wat er gebeurd is.</p>
-    ${od.map(s=>`<div class="run-row"><b>${esc(runDateShort(s.date))}</b> · ${esc(s.name)} ${runResultPicker(s)}${runBtn('move|'+s.id,'Verplaatsen','sm','')}</div>`).join('')}</div>`;
-
-  /* mijn volgende training */
-  const nx = runNextTraining();
-  h += `<div class="card run-next"><h3>Mijn volgende training</h3>`;
-  if(nx){
-    const T = runTotals(nx.steps);
-    h += `<div class="run-next-head"><div><b class="run-big">${esc(nx.name)}</b><div class="small">${esc(runDateLabel(nx.date))}${nx.date===today?' — vandaag':''} · ${runMinLabel(T.total)}</div>
-        <div class="small">${esc(runShortStructure(nx.steps))} · ${esc(RUN_INTENS[nx.intensity]||'Rustig tempo')}</div></div></div>
-      ${runTimelineSVG(nx.steps, 34)}${runLegend()}
-      ${runRestWarnings(nx).map(w=>`<div class="warnline">${esc(w)}</div>`).join('')}
-      <div class="run-detail">${runTotalsLine(nx.steps,nx.intensity,nx.target)}<div class="small">${esc(runDescribeSteps(nx.steps))}</div>${nx.notes?`<div class="small muted">${esc(nx.notes)}</div>`:''}</div>
-      ${nx.date<=today ? `<div class="run-detail">${runResultPicker(nx)}</div>`:''}`;
-  } else {
-    const sug = runSuggestionDates(today, 3)[0], lvl = runCurrentTpl();
-    h += `<p class="small">Er is geen training gepland.</p>`;
-    if(sug) h += `<p class="small">Voorstel: <b>${esc(runDateLabel(sug))}</b> — ${esc(lvl.name)} (${esc(runShortStructure(runStepsFromParams(lvl)))}), alleen als je je voldoende hersteld voelt.</p>
-      <div class="run-actions big">${runBtn('plan|'+sug+'|'+lvl.id,'Plan '+esc(lvl.name)+' op '+esc(runDateShort(sug)),'primary')}${runBtn('tab|program','Programma bekijken')}</div>`;
-    else h += `<div class="run-actions">${runBtn('tab|program','Programma bekijken')}</div>`;
-  }
-  h += `</div>`;
-
-  /* herstelstatus */
-  const rd = runReadiness(today), st = RUN_LIGHT[rd.shown];
-  h += `<div class="card run-status st-${rd.shown}"><h3>Mijn herstelstatus</h3>
-    <div class="run-light"><span class="run-bulb">${st.emoji}</span><div><b>${esc(runStatusHeadline(rd))}</b><div class="tny muted">Automatische beoordeling: ${RUN_LIGHT[rd.auto].emoji} ${esc(RUN_LIGHT[rd.auto].nl.toLowerCase())} · Mijn beoordeling: ${rd.own?RUN_LIGHT[rd.own].emoji+' '+esc(RUN_LIGHT[rd.own].nl.toLowerCase()):'niet ingevuld'}</div>${rd.ownMilder?'<div class="tny" style="margin-top:4px">Je eigen beoordeling wijkt af van de automatische waarschuwing. De waarschuwing blijft zichtbaar omdat er risicofactoren of ontbrekende gegevens zijn geregistreerd.</div>':''}<div class="tny muted">Ondersteunend advies, geen medische goedkeuring of diagnose.</div></div></div>
-    <details class="acc"><summary>Waarom?</summary><div class="acc-body">
-      ${rd.reasons.length?`<ul class="small">${rd.reasons.map(r=>`<li>${esc(r.text)}</li>`).join('')}</ul>`:''}
-      ${rd.missing.length?`<div class="tny muted">Ontbrekend: ${rd.missing.map(esc).join('; ')}.</div>`:''}
-      ${!rd.reasons.length && !rd.missing.length?'<div class="small muted">Geen aandachtspunten gevonden.</div>':''}
-    </div></details>
-    <div class="run-actions"><span class="tny muted" style="align-self:center">Mijn beoordeling:</span>
-      ${['green','orange','red'].map(k=>runBtn('own|'+today+'|'+k, RUN_LIGHT[k].emoji+' '+RUN_LIGHT[k].nl, 'sm'+(rd.own===k?' active':''))).join('')}${rd.own?runBtn('own|'+today+'|','Wissen','sm'):''}</div>
-    ${rp.settings.physioNote?`<div class="tny muted" style="margin-top:8px">Je hebt aanhoudende klachten aan het linkerbovenbeen (lies). De opbouw is voorzichtig bedoeld; een beoordeling door een sportfysiotherapeut is verstandig voordat je verder opbouwt.</div>`:''}</div>`;
-
-  /* voor-controle van vandaag (open zolang er iets te doen is) */
-  const pre = runPre(today), needPre = !runPreComplete(pre) || runSessionsOn(today).some(s=>s.status==='planned');
-  h += `<details class="acc" ${needPre?'open':''}><summary>Voor de training — hoe voel je je vandaag? <span class="tny muted">${runPreComplete(pre)?'· ingevuld':'· ongeveer 20 seconden'}</span></summary><div class="acc-body">${runPreForm(today)}</div></details>`;
-
-  /* na de training / volgende ochtend: alleen als er iets openstaat */
-  const done = runDoneSessions().filter(s=> s.date>=addDays(today,-7));
-  const needPost = done.filter(s=> !runPostComplete(s.post)).pop();
-  const needNext = done.filter(s=> runPostComplete(s.post) && !runNextComplete(s.next) && s.date<today).pop();
-  if(needPost) h += `<details class="acc" open><summary>Na de training — ${esc(runDateShort(needPost.date))} <span class="tny muted">· inspanning en pijn</span></summary><div class="acc-body">${runPostForm(needPost)}</div></details>`;
-  if(needNext) h += `<details class="acc" open><summary>De volgende ochtend — na ${esc(runDateShort(needNext.date))} <span class="tny muted">· klachten en energie</span></summary><div class="acc-body">${runNextForm(needNext)}</div></details>`;
-
-  /* evaluatie */
-  const ev = runEvaluation();
-  h += `<div class="card"><h3>Evaluatie <span class="sub">na twee uitgevoerde trainingen</span></h3>
-    <p><b>${esc(ev.advice)}</b></p><ul class="small">${ev.why.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>
-    <div class="tny muted">Huidig niveau: <b>${esc(ev.level.name)}</b>. De beslissing blijft altijd bij jou.</div>
-    <div class="run-actions">${runBtn('level|'+ev.level.id+'|handhaven','Niveau handhaven','sm')}${ev.nextTpl?runBtn('level|'+ev.nextTpl.id+'|opbouwen','Naar '+esc(ev.nextTpl.name),'sm'):''}${ev.prevTpl?runBtn('level|'+ev.prevTpl.id+'|verlagen','Terug naar '+esc(ev.prevTpl.name),'sm'):''}</div></div>`;
-
-  return h;
-}
-
-/* ---------- TRAININGSPROGRAMMA ---------- */
-/* bewerkformulier van één niveau (staat onder het niveau zelf bij Trainingsprogramma) */
-function runLevelEditor(t,i){
-  const rp = RP(), b = '__run.tpl.'+t.id+'.', tg = t.target||{type:'none'};
-  return `
-      <div class="form-grid cols-2">${runInp('Naam',b+'name',t.name)}${runInp('Omschrijving kort (optioneel)',b+'label',t.label)}</div>
-      <div class="form-grid cols-4">
-        ${runInp('Opwarmen (min)',b+'warmupMin',runMinStr(Math.round(t.warmupMin*60)),{inputmode:'decimal',ph:'5'})}
-        ${runInp('Aantal intervallen',b+'reps',t.reps,{type:'number',inputmode:'numeric',min:1,max:50})}
-        ${runInp('Hardlopen per interval (min)',b+'runMin',runMinStr(Math.round(t.runMin*60)),{inputmode:'decimal',ph:'3 of 3:30'})}
-        ${runInp('Wandelen per interval (min)',b+'walkMin',runMinStr(Math.round(t.walkMin*60)),{inputmode:'decimal',ph:'0 = geen'})}
-        ${runInp('Afkoelen (min)',b+'cooldownMin',runMinStr(Math.round(t.cooldownMin*60)),{inputmode:'decimal',ph:'5'})}
-        ${runSel('Intensiteit',b+'intensity',t.intensity,Object.entries(RUN_INTENS))}
-        ${runSel('Doel tijdens hardlopen',b+'tgtType',tg.type,[['none','geen doel'],['hr','hartslag (bpm)'],['pace','tempo (min/km)']])}
-        ${tg.type==='hr'?runInp('Hartslag van (bpm)',b+'tgtLow',tg.low,{type:'number',inputmode:'numeric'})+runInp('Hartslag tot (bpm)',b+'tgtHigh',tg.high,{type:'number',inputmode:'numeric'}):''}
-        ${tg.type==='pace'?runInp('Tempo van (snel, m:ss)',b+'tgtLow',tg.low?secToPace(tg.low):'',{ph:'6:00'})+runInp('Tempo tot (langzaam, m:ss)',b+'tgtHigh',tg.high?secToPace(tg.high):'',{ph:'6:45'}):''}
-        ${runInp('Minimale rustdagen tussen trainingen',b+'minRestDays',t.minRestDays,{type:'number',inputmode:'numeric',min:0,max:14})}
-        ${runInp('Goed uitgevoerde trainingen voor doorgaan',b+'goodSessionsToProceed',t.goodSessionsToProceed,{type:'number',inputmode:'numeric',min:1,max:10})}
-      </div>${runInp('Opmerkingen',b+'notes',t.notes)}
-      ${runTimelineSVG(runStepsFromParams(t),26)}
-      <div class="run-actions">${i>0?runBtn('tplUp|'+t.id,'↑ Omhoog','sm'):''}${i<rp.templates.length-1?runBtn('tplDown|'+t.id,'↓ Omlaag','sm'):''}${runBtn('tplDup|'+t.id,'Dupliceren','sm')}${rp.templates.length>1 && !runDefaultTemplates().some(d=>d.id===t.id) ? runBtn('tplDel|'+t.id,'Verwijderen','sm danger') : ''}</div>`;
-}
-
-function runViewProgram(){
-  const rp = RP(), today = todayISO(), cur = runCurrentTpl(); let h = '';
-  /* niveaus */
-  /* niveaus: standaard ingeklapt (less is more); open na toevoegen/dupliceren van een niveau */
-  h += `<details class="acc run-levels" ${RUI.manage?'open':''}><summary>Niveaus <span class="tny muted">· huidig: ${esc(cur.name)} — ${esc(runShortStructure(runStepsFromParams(cur)))} · ${runMinLabel(runTotals(runStepsFromParams(cur)).total)}</span></summary><div class="acc-body"><div class="run-ladder">`;
-  const planDay = runSuggestionDates(today,6)[0] || addDays(today,1);     // eerstvolgende vrije trainingsdag
-  rp.templates.forEach((t,idx)=>{
-    const steps = runStepsFromParams(t), T = runTotals(steps), isCur = t.id===cur.id;
-    const editing = RUI.manage===t.id;
-    h += `<div class="run-level ${isCur?'cur':''} ${editing?'editing':''}"><div class="run-level-top"><b>${esc(t.name)}</b>${t.label?` <span class="tny muted">${esc(t.label)}</span>`:''}${isCur?' <span class="pill done">huidig</span>':''}</div>
-      <div class="small">${esc(runShortStructure(steps))} · ${runMinLabel(T.total)}</div>${runTimelineSVG(steps, 20)}
-      <div class="run-actions">${isCur?'':runBtn('level|'+t.id+'|handmatig','Gebruik dit niveau','sm')}${runBtn('plan|'+planDay+'|'+t.id,'Inplannen op '+esc(runDateShort(planDay)),'sm')}${runBtn('tplEdit|'+t.id, editing?'Klaar met aanpassen':'Niveau aanpassen', 'sm'+(editing?' active':''))}</div>
-      ${editing ? `<div class="run-level-edit">${runLevelEditor(t,idx)}</div>` : ''}</div>`;
-  });
-  h += `</div><div class="run-actions">${runBtn('tplAdd','+ Nieuw niveau toevoegen','sm')}</div>${runLegend()}${rp.levelLog.length?`<details class="acc"><summary>Niveau-geschiedenis</summary><div class="acc-body"><ul class="small">${rp.levelLog.slice().reverse().map(l=>`<li>${esc(fmt(l.date,{day:'numeric',month:'long'}))}: ${esc(l.from||'—')} → ${esc(l.to)} (${esc(l.reason||'')})</li>`).join('')}</ul></div></details>`:''}</div></details>`;
-
-  /* kalender */
-  h += `<div class="card"><h3>Kalender</h3>
-    <p class="tny muted">Elke dag zonder training is een rustdag. Alleen trainingen gaan naar Intervals.icu en Garmin. Tik op een training om te verzetten, over te slaan of aan te passen.</p>`;
-  const sugg = new Set(runSuggestionDates(addDays(today,-7), (rp.settings.planWeeksAhead||2)+1));
-  const wk0 = runMonday(addDays(today,-7));
-  for(let w=0; w<(rp.settings.planWeeksAhead||2)+2; w++){
-    const mon = addDays(wk0, w*7), sun = addDays(mon,6);
-    let rows = '';
-    for(let i=0;i<7;i++){
-      const d = addDays(mon,i), ss = runSessionsOn(d), dl = esc(runDateShort(d)), past = d<today;
-      ss.forEach(s=>{
-        const T = runTotals(s.steps);
-        const acts = s.status==='planned'
-          ? runBtn('edit|'+s.id,'Aanpassen','sm')+`<span class="run-move"><input type="date" data-bind="__run.ses.${s.id}.date" value="${esc(s.date)}" aria-label="Verzetten naar"></span>`+runBtn('skip|'+s.id,'Overslaan','sm')+runBtn('cancel|'+s.id,'Annuleren','sm')+runBtn('del|'+s.id,'Verwijderen','sm danger')
-          : s.status==='done' ? runBtn('edit|'+s.id,'Bekijken','sm')
-          : runBtn('reopen|'+s.id,'Weer inplannen','sm')+runBtn('del|'+s.id,'Verwijderen','sm danger');
-        rows += `<details class="acc run-day ${s.status}"><summary><span class="run-day-d">${dl}</span><span class="run-day-b"><b>${esc(s.name.replace(/ – .*/,''))}</b> <span class="tny muted">${runMinLabel(T.total)} · ${esc(runShortStructure(s.steps))}</span></span><span class="run-day-s">${runStatusPill(s)}${coachPill(s)}</span></summary>
-          <div class="acc-body"><div class="run-actions">${acts}</div></div></details>`;
-      });
-      if(!ss.length){
-        const canPlan = sugg.has(d) && !past;
-        rows += `<div class="run-day rest"><span class="run-day-d">${dl}</span><span class="run-day-b">Rustdag${canPlan?` <span class="tny muted">· voorstel: ${esc(cur.name)}</span>`:''}</span><span class="run-day-s">${canPlan?runBtn('plan|'+d+'|'+cur.id,'+ Inplannen','sm'):''}</span></div>`;
-      }
-    }
-    h += `<div class="run-week"><div class="run-week-h">Week ${runIsoWeek(mon)} · ${esc(fmt(mon,{day:'numeric',month:'long'}))} t/m ${esc(fmt(sun,{day:'numeric',month:'long'}))}</div>${rows}</div>`;
-  }
-  h += `<div class="run-actions">${runBtn('planAhead','Vul de voorstellen in ('+(rp.settings.planWeeksAhead||2)+' weken, '+esc(cur.name)+')','sm')}
-    ${rp.settings.paused?runBtn('resume','Hervatten','sm'):runBtn('pause','Programma pauzeren','sm')}${runBtn('shift','Komende trainingen verschuiven…','sm')}${runBtn('rebuild','Opnieuw samenstellen…','sm')}</div></div>`;
-
-  /* instellingen */
-  const th = rp.settings.thresholds, sb = '__run.set.';
-  h += `<details class="acc"><summary>Instellingen — trainingsdagen en drempels</summary><div class="acc-body">
-    <div class="small"><b>Trainingsdagen</b> (standaarddagen voor voorstellen)</div>
-    <div class="run-actions">${DOW.map(k=>runBtn('day|'+k, esc(DOW_NL[k]), 'sm'+(rp.settings.trainingDays.includes(k)?' active':''))).join('')}</div>
-    <div class="form-grid cols-4">
-      ${runInp('Voorstellen vooruit (weken)',sb+'planWeeksAhead',rp.settings.planWeeksAhead,{type:'number',inputmode:'numeric',min:1,max:8})}
-      ${runSel('Garmin-run automatisch koppelen als eenduidig',sb+'autoLinkGarmin',rp.settings.autoLinkGarmin?'ja':'nee',[['ja','ja'],['nee','nee']])}
-      ${runSel('Dit programma vervangt Garmin Coach in de app',sb+'replaceGarminCoach',rp.settings.replaceGarminCoach?'ja':'nee',[['ja','ja'],['nee','nee (oude Coach-planning terug)']])}
-      ${runSel('Fysio-advies tonen',sb+'physioNote',rp.settings.physioNote?'ja':'nee',[['ja','ja'],['nee','nee']])}
-    </div>
-    <div class="small" style="margin-top:8px"><b>Drempels voor de herstelstatus</b> <span class="tny muted">(schalen 0–10 / 1–10)</span></div>
-    <div class="form-grid cols-4">
-      ${runInp('Groen: pijn maximaal',sb+'th.greenPainMax',th.greenPainMax,{type:'number',inputmode:'numeric'})}
-      ${runInp('Oranje vanaf pijn',sb+'th.painOrange',th.painOrange,{type:'number',inputmode:'numeric'})}
-      ${runInp('Rood vanaf pijn',sb+'th.painRed',th.painRed,{type:'number',inputmode:'numeric'})}
-      ${runInp('Oranje bij energie ≤',sb+'th.energyOrange',th.energyOrange,{type:'number',inputmode:'numeric'})}
-      ${runInp('Rood bij energie ≤',sb+'th.energyRed',th.energyRed,{type:'number',inputmode:'numeric'})}
-      ${runInp('Pijn tijdens training ≥ is niet goed',sb+'th.painDuringBad',th.painDuringBad,{type:'number',inputmode:'numeric'})}
-      ${runInp('"Goed verdragen": pijn tijdens ≤',sb+'th.goodMaxPain',th.goodMaxPain,{type:'number',inputmode:'numeric'})}
-      ${runInp('Voorzichtig herstarten na (dagen)',sb+'th.staleDays',th.staleDays,{type:'number',inputmode:'numeric'})}
-    </div>
-  </div></details>`;
-  return h;
-}
-
-/* ---------- TRAINING AANPASSEN ---------- */
-function runSessionPicker(withSuggestions){
-  const rp = RP(), today = todayISO();
-  const list = rp.sessions.filter(s=> s.status==='planned' || s.date>=addDays(today,-14)).sort(runByDate);
-  if(!RUI.selId || !runSes(RUI.selId)){ const n = runNextTraining() || list[0]; RUI.selId = n ? n.id : null; }
-  // voorgestelde trainingsdagen (nog niet ingepland): kiezen maakt er een training van, die je daarna kunt aanpassen of verzetten
-  const sugg = withSuggestions ? runSuggestionDates(today, 4).filter(d=>d>=today).slice(0,8) : [];
-  if(!list.length && !sugg.length) return '';
-  const lvl = runCurrentTpl();
-  const items = list.map(s=>({ date:s.date, html:`<option value="${s.id}" ${s.id===RUI.selId?'selected':''}>${esc(runDateShort(s.date))} — ${esc(s.name)} (${RUN_STATUS_NL[s.status]})</option>` }))
-    .concat(sugg.map(d=>({ date:d, html:`<option value="sug:${d}">${esc(runDateShort(d))} — voorstel ${esc(lvl.name)} (nog niet ingepland)</option>` })))
-    .sort((x,y)=>x.date.localeCompare(y.date));
-  return `<div class="field"><label>Training</label><select data-run-pick>${items.map(i=>i.html).join('')}</select></div>
-    ${sugg.length ? `<div class="tny muted">Kies een voorstel om die dag in te plannen; daarna kun je de datum en de training hieronder aanpassen.</div>` : ''}`;
-}
-function runQ(s){      // snelle structuurvelden (worden pas bij "Stappen opnieuw opbouwen" toegepast)
+/* snelle velden voor één training (gaan meteen in, zonder aparte knop) */
+function runQ(s){
   RUI.q = RUI.q || {};
   if(!RUI.q[s.id]){
-    const t = runTotals(s.steps), runs = s.steps.filter(x=>x.t==='run'), walks = s.steps.filter(x=>x.t==='walk');
+    const runs = s.steps.filter(x=>x.t==='run'), walks = s.steps.filter(x=>x.t==='walk');
     RUI.q[s.id] = { warm:runMinStr(s.steps.find(x=>x.t==='warmup')?.sec||0), reps:String(runs.length||1), run:runMinStr(runs[0]?.sec||180), walk:runMinStr(walks[0]?.sec||0), cool:runMinStr(s.steps.find(x=>x.t==='cooldown')?.sec||0) };
   }
   return RUI.q[s.id];
 }
-function runViewEdit(){
-  const rp = RP(); let h = '';
-  const pick = runSessionPicker(true); const s = runSes(RUI.selId);
-  h += `<div class="card"><h3>Training aanpassen</h3>
-    <p class="tny muted">Je past hier één geplande training aan. Het niveau (sjabloon) blijft zoals het was.</p>
-    ${pick}<div class="run-actions"><span class="run-move"><input type="date" id="runNewDate" value="${esc(runSuggestionDates(todayISO(),4)[0]||todayISO())}" aria-label="Datum nieuwe training"></span>${runBtn('newOnDate','+ Nieuwe training (huidig niveau) op deze datum','sm')}${runBtn('addDonePrompt','+ Gedane training achteraf toevoegen','sm')}</div></div>`;
-  if(!s) return h + `<div class="card"><p class="small muted">Er is nog geen training om aan te passen. Plan er een in bij Trainingsprogramma, of voeg er hierboven een toe.</p></div>`;
-  const b = '__run.ses.'+s.id+'.', locked = s.status==='done', T = runTotals(s.steps), q = runQ(s), tg = s.target || { type:'none' };
-  h += `<div class="card"><h3>${esc(s.name)} ${runStatusPill(s)}</h3>
-    ${runTimelineSVG(s.steps,44)}${runLegend()}${runTotalsLine(s.steps,s.intensity,s.target)}
-    ${runRestWarnings(s).map(w=>`<div class="warnline">${esc(w)}</div>`).join('')}
-    ${locked?`<div class="notice">Deze training is uitgevoerd. Je kunt hem niet meer aanpassen; alleen de notitie.</div>`:''}
-    <div class="form-grid cols-2">${runInp('Datum',b+'date',s.date,{type:'date'})}${runInp('Naam',b+'name',s.name)}</div>
-    ${locked?'':`<div class="form-grid cols-4">
-      ${runSel('Intensiteit',b+'intensity',s.intensity,Object.entries(RUN_INTENS))}
-      ${runSel('Doel tijdens hardlopen',b+'tgtType',tg.type,[['none','geen doel'],['hr','hartslag (bpm)'],['pace','tempo (min/km)']])}
-      ${tg.type==='hr'?runInp('Hartslag van (bpm)',b+'tgtLow',tg.low,{type:'number',inputmode:'numeric'})+runInp('Hartslag tot (bpm)',b+'tgtHigh',tg.high,{type:'number',inputmode:'numeric'}):''}
-      ${tg.type==='pace'?runInp('Tempo van (snel, m:ss)',b+'tgtLow',tg.low?secToPace(tg.low):'',{ph:'6:00'})+runInp('Tempo tot (langzaam, m:ss)',b+'tgtHigh',tg.high?secToPace(tg.high):'',{ph:'6:45'}):''}
-    </div>`}
-    ${runInp('Notitie',b+'notes',s.notes)}
-    ${locked?'':`<details class="acc"><summary>Snel aanpassen — intervallen, duur en rust</summary><div class="acc-body">
-      <div class="form-grid cols-4">
-        ${runInp('Opwarmen (min)','__run.q.'+s.id+'.warm',q.warm,{inputmode:'decimal'})}
-        ${runInp('Aantal intervallen','__run.q.'+s.id+'.reps',q.reps,{type:'number',inputmode:'numeric',min:1,max:50})}
-        ${runInp('Hardlopen (min)','__run.q.'+s.id+'.run',q.run,{inputmode:'decimal',ph:'3 of 3:30'})}
-        ${runInp('Wandelen (min)','__run.q.'+s.id+'.walk',q.walk,{inputmode:'decimal',ph:'0 = geen'})}
-        ${runInp('Afkoelen (min)','__run.q.'+s.id+'.cool',q.cool,{inputmode:'decimal'})}
-      </div><div class="run-actions">${runBtn('rebuildSteps|'+s.id,'Stappen opnieuw opbouwen','primary sm')}<span class="tny muted" style="align-self:center">vervangt de stappenlijst hieronder</span></div>
-      <div class="small" style="margin-top:8px">Of kies een ander niveau als basis (maakt een verse kopie voor deze training):</div>
-      <div class="run-actions">${rp.templates.map(t=>runBtn('sesLevel|'+s.id+'|'+t.id, esc(t.name),'sm'+(t.id===s.templateId?' active':''))).join('')}</div>
-    </div></details>
-    <details class="acc"><summary>Stap voor stap</summary><div class="acc-body">
-      <div class="run-steps">${s.steps.map((st,i)=>`<div class="run-step"><span class="tny muted">${i+1}</span>
-        <select data-bind="__run.step.${s.id}.${i}.t">${Object.entries(RUN_STEP).map(([k,v])=>`<option value="${k}" ${k===st.t?'selected':''}>${v.nl}</option>`).join('')}</select>
-        <input type="text" inputmode="decimal" data-bind="__run.step.${s.id}.${i}.min" value="${esc(runMinStr(st.sec))}" aria-label="Minuten"><span class="tny muted">min</span>
-        ${runBtn('stepUp|'+s.id+'|'+i,'↑','sm')}${runBtn('stepDown|'+s.id+'|'+i,'↓','sm')}${runBtn('stepDup|'+s.id+'|'+i,'⧉','sm')}${runBtn('stepDel|'+s.id+'|'+i,'✕','sm danger')}</div>`).join('')}</div>
-      <div class="run-actions">${runBtn('stepAdd|'+s.id+'|run','+ Hardlopen','sm')}${runBtn('stepAdd|'+s.id+'|walk','+ Wandelen','sm')}${runBtn('resetToTemplate|'+s.id,'Terug naar niveau-standaard','sm')}${runBtn('saveAsLevel|'+s.id,'Bewaar als nieuw niveau','sm')}</div>
-    </div></details>`}</div>`;
-  return h;
+function runEditHTML(s){
+  const q = runQ(s), qb = '__run.q.'+s.id+'.';
+  return `<div class="run-edit">
+    <div class="form-grid cols-5">
+      ${runInp('Opwarmen (min)', qb+'warm', q.warm, { inputmode:'decimal' })}
+      ${runInp('Intervallen', qb+'reps', q.reps, { type:'number', inputmode:'numeric', min:1, max:50 })}
+      ${runInp('Hardlopen (min)', qb+'run', q.run, { inputmode:'decimal', ph:'3 of 3:30' })}
+      ${runInp('Wandelen (min)', qb+'walk', q.walk, { inputmode:'decimal', ph:'0 = geen' })}
+      ${runInp('Afkoelen (min)', qb+'cool', q.cool, { inputmode:'decimal' })}
+    </div>
+    <div class="tny muted">Een wijziging telt meteen${coachState(s)!=='local' ? ' en gaat vanzelf mee naar Garmin' : ''}. Het niveau zelf blijft zoals het is.</div>
+    <div class="run-sub">Of neem een ander niveau voor deze training</div>
+    <div class="run-chips">${RP().templates.map(t=>runBtn('sesLevel|'+s.id+'|'+t.id, esc(t.name.replace(/^Niveau /,'')), 'sm'+(t.id===s.templateId?' active':''))).join('')}</div>
+    ${runInp('Notitie', '__run.ses.'+s.id+'.notes', s.notes, { ph:'optioneel' })}</div>`;
 }
-
-/* ---------- GARMIN & RESULTATEN ---------- */
-function runViewGarmin(){
-  const rp = RP(), today = todayISO(); let h = '';
-  const pick = runSessionPicker(), s = runSes(RUI.selId);
-  h += `<div class="card"><h3>Garmin & resultaten</h3>${pick||'<p class="small muted">Er is nog geen training. Plan er een in bij Trainingsprogramma.</p>'}</div>`;
-  if(s){
-    const T = runTotals(s.steps);
-    h += `<div class="card"><h3>${esc(s.name)} · ${esc(runDateShort(s.date))} ${runStatusPill(s)}</h3>${runTimelineSVG(s.steps,34)}${runLegend()}${runTotalsLine(s.steps,s.intensity,s.target)}
-      </div>`;
-    h += coachCardHTML(s);
-    h += `<div class="card"><h3>Resultaat registreren</h3>${runResultPicker(s)}
-      ${s.status==='done'?`<details class="acc" open><summary>Na de training</summary><div class="acc-body">${runPostForm(s)}</div></details>
-        <details class="acc" ${s.date<today?'open':''}><summary>De volgende ochtend</summary><div class="acc-body">${runNextForm(s)}</div></details>
-        ${(()=>{ const oc = runOutcome(s); return `<div class="small"><b>Beoordeling:</b> ${esc(oc.text)}</div>`; })()}
-        <details class="acc"><summary>Zonder Garmin-gegevens: duur en afstand zelf noteren</summary><div class="acc-body"><div class="form-grid cols-2">${runInp('Duur (min)','__run.ses.'+s.id+'.manDuration',s.manual&&s.manual.durationMin,{type:'number',inputmode:'decimal'})}${runInp('Afstand (km)','__run.ses.'+s.id+'.manDistance',s.manual&&s.manual.distanceKm,{type:'number',inputmode:'decimal'})}</div></div></details>`:''}
-      <div class="run-actions">${s.status==='planned'?'':runBtn('reopen|'+s.id,'Weer op "gepland" zetten','sm')}</div></div>`;
+/* alles van één training, onder de training in de kalender */
+function runSessionDetail(s){
+  const today = todayISO(), b = '__run.ses.'+s.id+'.';
+  let h = runTimelineSVG(s.steps, 30) + runTotalsLine(s.steps);
+  if(s.status==='planned'){
+    h += runRestWarnings(s).map(w=>`<div class="warnline">${esc(w)}</div>`).join('');
+    h += coachLineHTML(s);
+    if(s.date<=today) h += `<div class="run-sub">Hoe ging het?</div><div class="run-actions">${runResultButtons(s)}</div>`;
+    const editing = RUI.editId===s.id;
+    h += `<div class="run-actions">
+        <label class="run-move">Verzetten <input type="date" data-bind="${b}date" value="${esc(s.date)}"></label>
+        ${runBtn('editToggle|'+s.id, editing?'Klaar':'Aanpassen', 'sm'+(editing?' active':''))}
+        ${s.date>today ? runBtn('skip|'+s.id,'Overslaan','sm') : ''}${runBtn('del|'+s.id,'Verwijderen','sm danger')}</div>`;
+    if(editing) h += runEditHTML(s);
+  } else if(s.status==='done'){
+    h += `<div class="small run-res">${runResultLine(s)}</div><div class="run-sub">Na de training</div>${runPostForm(s)}`;
+    h += `<div class="small"><b>Beoordeling:</b> ${esc(runOutcome(s).text)}</div>`;
+    if(!s.garminExternalId) h += `<div class="form-grid cols-2">${runInp('Duur (min)', b+'manDuration', s.manual && s.manual.durationMin, { type:'number', inputmode:'decimal' })}${runInp('Afstand (km)', b+'manDistance', s.manual && s.manual.distanceKm, { type:'number', inputmode:'decimal' })}</div>`;
+    h += `<div class="run-actions">${runBtn('undo|'+s.id,'Ongedaan maken','sm')}</div>`;
+  } else {
+    h += `<div class="run-actions">${runBtn('undo|'+s.id,'Ongedaan maken','sm')}${runBtn('del|'+s.id,'Verwijderen','sm danger')}</div>`;
   }
-  /* Garmin-runs zonder training */
-  const linked = runLinkedMap(), legacyIds = new Set(CB.coachRuns.map(r=>r.garminExternalId).filter(Boolean));
-  const loose = (state.garmin.activities||[]).filter(a=> runIsRunActivity(a) && !linked[a.externalId] && !legacyIds.has(a.externalId) && a.date>=addDays(today,-60)).sort((x,y)=>(y.startTime||y.date).localeCompare(x.startTime||x.date)).slice(0,8);
-  if(loose.length) h += `<div class="card"><h3>Garmin-runs zonder training <span class="sub">${loose.length}</span></h3><p class="tny muted">Gemeten door je horloge, nog niet aan een training gekoppeld. Ze blijven gewoon in je Garmin-gegevens staan.</p>
-    ${loose.map(a=>{ const opts = rp.sessions.filter(x=>(x.status==='planned' || (x.status==='done' && !x.garminExternalId)) && Math.abs((parseDate(x.date)-parseDate(a.date))/86400000)<=3).sort(runByDate);
-      return `<div class="run-row"><b>${esc(runDateShort(a.date))}</b> · ${a.distanceKm!=null?nl(a.distanceKm)+' km':''} · ${a.durationMin!=null?nl(round(a.durationMin,1))+' min':''}${a.avgHr!=null?' · gem. HR '+a.avgHr:''}
-        <div class="run-actions">${opts.map(x=>runBtn('link|'+x.id+'|'+a.externalId,'Koppel aan '+esc(runDateShort(x.date))+' '+esc(x.name),'sm')).join('')}${runBtn('addDoneFrom|'+a.externalId,'Voeg toe als gedane training','sm')}</div></div>`; }).join('')}</div>`;
-
-
   return h;
 }
+/* Garmin-runs van de laatste 2 weken die nog bij geen training horen */
+function runLooseActivities(){
+  const today = todayISO(), linked = runLinkedMap(), legacy = new Set((CB.coachRuns||[]).map(r=>r.garminExternalId).filter(Boolean));
+  return (state.garmin.activities||[]).filter(a=> runIsRunActivity(a) && !linked[a.externalId] && !legacy.has(a.externalId) && a.date>=addDays(today,-14) && a.date<=today)
+    .sort((x,y)=>(y.startTime||y.date).localeCompare(x.startTime||x.date)).slice(0,6);
+}
+
+/* ---------- OVERZICHT: alleen wat nu nodig is ---------- */
+function runViewOverview(){
+  const rp = RP(), today = todayISO(); let h = '';
+  if(rp.settings.paused) h += `<div class="warnline">⏸ Programma gepauzeerd${rp.settings.pausedFrom?' sinds '+esc(fmt(rp.settings.pausedFrom,{day:'numeric',month:'long'})):''}. ${runBtn('resume','Hervatten','sm')}</div>`;
+
+  /* vragen na de training, tot ze ingevuld zijn */
+  const needPost = runDoneSessions().filter(s=> s.date>=addDays(today,-7) && !runPostComplete(s.post)).pop();
+  if(needPost) h += `<div class="card run-ask"><h3>Hoe ging je training van ${esc(runDateShort(needPost.date))}?</h3>
+    <div class="small muted">${esc(needPost.name)} · ${runResultLine(needPost)}</div>${runPostForm(needPost)}</div>`;
+
+  /* voorbij, nog op gepland en geen run gevonden */
+  const od = runOverdue();
+  if(od.length) h += `<div class="card"><h3>Nog te verwerken</h3>
+    ${od.map(s=>`<div class="run-row"><b>${esc(runDateShort(s.date))}</b> · ${esc(s.name)}<div class="run-actions">${runResultButtons(s)}${runBtn('open|'+s.id,'Verzetten','sm')}</div></div>`).join('')}</div>`;
+
+  /* volgende training */
+  const nx = runNextTraining();
+  h += `<div class="card run-next"><div class="eyebrow">Volgende training</div>`;
+  if(nx){
+    const T = runTotals(nx.steps), when = nx.date===today ? 'Vandaag' : nx.date===addDays(today,1) ? 'Morgen' : runDateLabel(nx.date);
+    h += `<div class="run-when">${esc(when.charAt(0).toUpperCase()+when.slice(1))}</div>
+      <div><b class="run-big">${esc(nx.name)}</b> <span class="small muted">· ${runMinLabel(T.total)} · ${esc(runShortStructure(nx.steps))}</span></div>
+      ${runTimelineSVG(nx.steps, 34)}
+      ${runRestWarnings(nx).map(w=>`<div class="warnline">${esc(w)}</div>`).join('')}
+      ${coachLineHTML(nx)}
+      <div class="run-actions">${runBtn('open|'+nx.id,'Bekijken of aanpassen','sm')}</div>`;
+  } else {
+    const sug = runSuggestionDates(today, 3)[0], lvl = runCurrentTpl();
+    h += `<p class="small">Er is geen training gepland.</p>`;
+    if(sug) h += `<div class="run-actions big">${runBtn('plan|'+sug+'|'+lvl.id,'Plan '+esc(lvl.name)+' op '+esc(runDateShort(sug)),'primary')}</div>`;
+  }
+  h += `</div>`;
+
+  /* herstelstatus: uit je Ochtendcheck, je eigen beoordeling op Vandaag en je vorige training */
+  const rd = runReadiness(today), st = RUN_LIGHT[rd.shown], pre = runPre(today);
+  h += `<div class="card run-status st-${rd.shown}">
+    <div class="run-light"><span class="run-bulb">${st.emoji}</span><div><b>${esc(runStatusHeadline(rd))}</b>
+      <div class="tny muted">${rd.own ? 'Je eigen beoordeling op Vandaag: '+RUN_LIGHT[rd.own].emoji+' '+esc(RUN_LIGHT[rd.own].nl.toLowerCase())+(rd.ownMilder?' — die wijkt af van de automatische waarschuwing; de waarschuwing blijft staan.':'') : 'Uit je Ochtendcheck en je vorige training.'}</div></div></div>
+    ${runPreComplete(pre) ? '' : `<div class="run-actions"><button class="btn sm primary" data-oc-open>Ochtendcheck invullen</button></div>`}
+    <details class="acc"><summary>Waarom?</summary><div class="acc-body">
+      ${rd.reasons.length?`<ul class="small">${rd.reasons.map(r=>`<li>${esc(r.text)}</li>`).join('')}</ul>`:''}
+      ${rd.missing.length?`<div class="tny muted">Ontbrekend: ${rd.missing.map(esc).join('; ')}.</div>`:''}
+      ${!rd.reasons.length && !rd.missing.length?'<div class="small muted">Geen aandachtspunten. Groen geldt bij pijn linkerbeen 0, energie boven 5 en geen klachten bij wandelen of traplopen.</div>':''}
+      <div class="tny muted">Ondersteunend advies, geen medische beoordeling.</div>
+    </div></details></div>`;
+
+  /* evaluatie: pas na twee uitgevoerde trainingen */
+  const ev = runEvaluation();
+  if(ev.doneCount>=2){
+    const up = /uitbreiden/i.test(ev.advice);
+    h += `<div class="card"><h3>Evaluatie</h3><p><b>${esc(ev.advice)}</b></p><ul class="small">${ev.why.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>
+      ${up ? '<div class="tny muted">Je hebt aanhoudende klachten aan het linkerbovenbeen (lies). Een beoordeling door een sportfysiotherapeut is verstandig voordat je verder opbouwt.</div>' : ''}
+      <div class="tny muted">Huidig niveau: <b>${esc(ev.level.name)}</b>. Jij beslist.</div>
+      <div class="run-actions">${runBtn('level|'+ev.level.id+'|handhaven','Niveau handhaven','sm')}${ev.nextTpl?runBtn('level|'+ev.nextTpl.id+'|opbouwen','Naar '+esc(ev.nextTpl.name),'sm'+(up?' primary':'')):''}${ev.prevTpl?runBtn('level|'+ev.prevTpl.id+'|verlagen','Terug naar '+esc(ev.prevTpl.name),'sm'):''}</div></div>`;
+  }
+
+  /* runs die nog bij geen training horen */
+  const loose = runLooseActivities();
+  if(loose.length) h += `<div class="card"><h3>Runs zonder training</h3>
+    ${loose.map(a=>{ const opts = rp.sessions.filter(x=>(x.status==='planned' || (x.status==='done' && !x.garminExternalId)) && Math.abs((parseDate(x.date)-parseDate(a.date))/86400000)<=3).sort(runByDate);
+      return `<div class="run-row"><b>${esc(runDateShort(a.date))}</b> ${esc(runTime(a))} · ${a.distanceKm!=null?nl(a.distanceKm)+' km':''}${a.durationMin!=null?' · '+nl(round(a.durationMin,1))+' min':''}
+        <div class="run-actions">${opts.map(x=>runBtn('link|'+x.id+'|'+a.externalId,'Hoort bij '+esc(runDateShort(x.date)),'sm')).join('')}${runBtn('addDoneFrom|'+a.externalId,'Voeg toe als training','sm')}</div></div>`; }).join('')}</div>`;
+  return h;
+}
+
+/* ---------- TRAININGSPROGRAMMA ---------- */
+function runLevelEditor(t){
+  const b = '__run.tpl.'+t.id+'.', own = !runDefaultTemplates().some(d=>d.id===t.id);
+  return `${runInp('Naam',b+'name',t.name)}
+      <div class="form-grid cols-5">
+        ${runInp('Opwarmen (min)',b+'warmupMin',runMinStr(Math.round(t.warmupMin*60)),{inputmode:'decimal',ph:'5'})}
+        ${runInp('Intervallen',b+'reps',t.reps,{type:'number',inputmode:'numeric',min:1,max:50})}
+        ${runInp('Hardlopen (min)',b+'runMin',runMinStr(Math.round(t.runMin*60)),{inputmode:'decimal',ph:'3 of 3:30'})}
+        ${runInp('Wandelen (min)',b+'walkMin',runMinStr(Math.round(t.walkMin*60)),{inputmode:'decimal',ph:'0 = geen'})}
+        ${runInp('Afkoelen (min)',b+'cooldownMin',runMinStr(Math.round(t.cooldownMin*60)),{inputmode:'decimal',ph:'5'})}
+      </div>${runInp('Opmerkingen',b+'notes',t.notes)}
+      <div class="tny muted">Al geplande trainingen veranderen niet mee.</div>
+      ${own && RP().templates.length>1 ? `<div class="run-actions">${runBtn('tplDel|'+t.id,'Verwijderen','sm danger')}</div>` : ''}`;
+}
+function runViewProgram(){
+  const rp = RP(), today = todayISO(), cur = runCurrentTpl(); let h = '';
+  /* niveaus: standaard ingeklapt */
+  h += `<details class="acc run-levels" ${RUI.manage?'open':''}><summary>Niveaus <span class="tny muted">· huidig: ${esc(cur.name)} — ${esc(runShortStructure(runStepsFromParams(cur)))} · ${runMinLabel(runTotals(runStepsFromParams(cur)).total)}</span></summary><div class="acc-body"><div class="run-ladder">`;
+  rp.templates.forEach(t=>{
+    const steps = runStepsFromParams(t), isCur = t.id===cur.id, editing = RUI.manage===t.id;
+    h += `<div class="run-level ${isCur?'cur':''} ${editing?'editing':''}"><div class="run-level-top"><b>${esc(t.name)}</b>${t.label?` <span class="tny muted">${esc(t.label)}</span>`:''}${isCur?' <span class="pill done">huidig</span>':''}</div>
+      <div class="small">${esc(runShortStructure(steps))} · ${runMinLabel(runTotals(steps).total)}</div>${runTimelineSVG(steps, 20)}
+      <div class="run-actions">${runBtn('tplEdit|'+t.id, editing?'Klaar':'Aanpassen', 'sm'+(editing?' active':''))}</div>
+      ${editing ? `<div class="run-level-edit">${runLevelEditor(t)}</div>` : ''}</div>`;
+  });
+  h += `</div><div class="run-actions">${runBtn('tplAdd','+ Nieuw niveau','sm')}<span class="tny muted">kopie van ${esc(cur.name)}</span></div>${runLegend()}${rp.levelLog.length?`<details class="acc"><summary>Niveau-geschiedenis</summary><div class="acc-body"><ul class="small">${rp.levelLog.slice().reverse().map(l=>`<li>${esc(fmt(l.date,{day:'numeric',month:'long'}))}: ${esc((runTpl(l.from)||{}).name||l.from||'—')} → <b>${esc((runTpl(l.to)||{}).name||l.to)}</b>${l.reason?` <span class="tny muted">(${esc(l.reason)})</span>`:''}</li>`).join('')}</ul></div></details>`:''}</div></details>`;
+
+  /* kalender: elke dag; tik op een training om alles ervan te zien */
+  h += `<div class="card"><h3>Kalender</h3>`;
+  const ahead = rp.settings.planWeeksAhead || 2, sugg = new Set(runSuggestionDates(addDays(today,-7), ahead+1)), wk0 = runMonday(addDays(today,-7));
+  for(let w=0; w<ahead+2; w++){
+    const mon = addDays(wk0, w*7), sun = addDays(mon,6); let rows = '';
+    for(let i=0;i<7;i++){
+      const d = addDays(mon,i), ss = runSessionsOn(d), dl = esc(runDateShort(d)) + (d===today ? ' <span class="pill priority">vandaag</span>' : '');
+      ss.forEach(s=>{
+        const T = runTotals(s.steps);
+        rows += `<details class="run-day ${s.status}" id="run-${s.id}" data-run-day="${s.id}" ${RUI.openId===s.id?'open':''}><summary><span class="run-day-d">${dl}</span><span class="run-day-b"><b>${esc(s.name.replace(/ – .*/,''))}</b> <span class="tny muted">${runMinLabel(T.total)} · ${esc(runShortStructure(s.steps))}</span></span><span class="run-day-s">${s.status==='planned' ? (s.date<today ? '<span class="pill warn">nog verwerken</span>' : '') : runStatusPill(s)}${coachPill(s)}</span></summary>
+          <div class="run-day-body">${runSessionDetail(s)}</div></details>`;
+      });
+      if(!ss.length){
+        const canPlan = sugg.has(d) && d>=today;
+        rows += `<div class="run-day rest"><span class="run-day-d">${dl}</span><span class="run-day-b">Rustdag${canPlan?` <span class="tny muted">· voorstel ${esc(cur.name)}</span>`:''}</span><span class="run-day-s">${canPlan?runBtn('plan|'+d+'|'+cur.id,'+ Inplannen','sm'):''}</span></div>`;
+      }
+    }
+    h += `<div class="run-week"><div class="run-week-h">Week ${runIsoWeek(mon)} · ${esc(fmt(mon,{day:'numeric',month:'short'}))} – ${esc(fmt(sun,{day:'numeric',month:'short'}))}</div>${rows}</div>`;
+  }
+  const free = runSuggestionDates(today, ahead+1).filter(d=>d>=today).length;
+  h += `<div class="run-actions">${free ? runBtn('planAhead','Vul de voorstellen in ('+free+'× '+esc(cur.name)+')','sm primary') : ''}${rp.settings.paused?runBtn('resume','Hervatten','sm'):runBtn('pause','Pauzeren','sm')}</div></div>`;
+
+  /* instellingen */
+  h += `<details class="acc"><summary>Instellingen</summary><div class="acc-body">
+    <div class="small"><b>Trainingsdagen</b> <span class="tny muted">(daar komen de voorstellen)</span></div>
+    <div class="run-chips">${DOW.map(k=>runBtn('day|'+k, esc(DOW_NL[k]), 'sm'+(rp.settings.trainingDays.includes(k)?' active':''))).join('')}</div>
+    <div class="form-grid cols-4">${runInp('Weken vooruit plannen','__run.set.planWeeksAhead',rp.settings.planWeeksAhead,{type:'number',inputmode:'numeric',min:1,max:8})}</div>
+  </div></details>`;
+  return h;
+}
+
 /* ---------- invoer-verwerking (komt binnen via setByPath voor '__run.*'-velden) ---------- */
 function runSet(parts, raw){
   RUI.msg = ''; const rp = RP(), k = parts[0];
   const bad = t => runMsg(t,'err');
   const numIn = (v,lo,hi) => { const n = num(String(v).replace(',','.')); return (n!=null && n>=lo && n<=hi) ? n : undefined; };
   if(k==='tpl'){
-    const t = runTpl(parts[1]); if(!t) return; const f = parts[2]; t.target = t.target || { type:'none', low:null, high:null };
-    if(['name','label','description','notes'].includes(f)){ if(f==='name' && !String(raw).trim()) return bad('Een niveau heeft een naam nodig.'); t[f] = String(raw).trim(); }
+    const t = runTpl(parts[1]); if(!t) return; const f = parts[2];
+    if(['name','notes'].includes(f)){ if(f==='name' && !String(raw).trim()) return bad('Een niveau heeft een naam nodig.'); t[f] = String(raw).trim(); }
     else if(['warmupMin','cooldownMin','runMin','walkMin'].includes(f)){ const sec = runParseMin(raw); if(sec==null || (f==='runMin' && sec<=0)) return bad('Vul een geldige duur in, bijvoorbeeld 3, 3,5 of 3:30.'); t[f] = sec/60; }
     else if(f==='reps'){ const n = parseInt(raw,10); if(!(n>=1 && n<=50)) return bad('Het aantal intervallen moet tussen 1 en 50 liggen.'); t.reps = n; }
-    else if(f==='intensity'){ if(RUN_INTENS[raw]) t.intensity = raw; }
-    else if(f==='tgtType'){ t.target = { type:['hr','pace'].includes(raw)?raw:'none', low:null, high:null }; }
-    else if(f==='tgtLow' || f==='tgtHigh'){ const v = t.target.type==='pace' ? paceToSec(String(raw).trim()) : numIn(raw,30,230); if(v==null || v===undefined){ if(String(raw).trim()==='') { t.target[f==='tgtLow'?'low':'high'] = null; return; } return bad(t.target.type==='pace'?'Tempo als m:ss, bijvoorbeeld 6:30.':'Hartslag tussen 30 en 230.'); } t.target[f==='tgtLow'?'low':'high'] = v; }
-    else if(f==='minRestDays'){ const n = numIn(raw,0,14); if(n===undefined) return bad('Rustdagen: een getal van 0 t/m 14.'); t.minRestDays = n; }
-    else if(f==='goodSessionsToProceed'){ const n = numIn(raw,1,10); if(n===undefined) return bad('Aantal trainingen: een getal van 1 t/m 10.'); t.goodSessionsToProceed = Math.round(n); }
     return;
   }
   if(k==='ses'){
     const s = runSes(parts[1]); if(!s) return; const f = parts[2];
-    if(f==='date'){ if(!runValidDate(raw)) return bad('Ongeldige datum.'); s.date = raw; rp.sessions.sort(runByDate); RUI.selId = s.id; }
-    else if(f==='name'){ if(!String(raw).trim()) return bad('Geef de training een naam.'); s.name = String(raw).trim(); }
+    if(f==='date'){ if(!runValidDate(raw)) return bad('Ongeldige datum.'); s.date = raw; rp.sessions.sort(runByDate); RUI.openId = s.id; RUI.scrollTo = s.id; }
     else if(f==='notes') s.notes = String(raw);
-    else if(f==='intensity'){ if(RUN_INTENS[raw]) s.intensity = raw; }
-    else if(f==='tgtType'){ s.target = { type:['hr','pace'].includes(raw)?raw:'none', low:null, high:null }; }
-    else if(f==='tgtLow' || f==='tgtHigh'){ s.target = s.target || { type:'none' }; const v = s.target.type==='pace' ? paceToSec(String(raw).trim()) : numIn(raw,30,230); if(v==null || v===undefined){ if(String(raw).trim()==='') { s.target[f==='tgtLow'?'low':'high'] = null; return; } return bad(s.target.type==='pace'?'Tempo als m:ss, bijvoorbeeld 6:30.':'Hartslag tussen 30 en 230.'); } s.target[f==='tgtLow'?'low':'high'] = v; }
     else if(f==='manDuration' || f==='manDistance'){ s.manual = s.manual || {}; const v = String(raw).trim()===''?null:numIn(raw,0,1000); if(v===undefined) return bad('Vul een geldig getal in.'); s.manual[f==='manDuration'?'durationMin':'distanceKm'] = v; }
-    return;
+    coachSoon(); return;
   }
-  if(k==='step'){
-    const s = runSes(parts[1]); if(!s || s.status==='done') return; const i = parseInt(parts[2],10), st = s.steps[i]; if(!st) return;
-    if(parts[3]==='t'){ if(RUN_STEP[raw]) st.t = raw; }
-    else if(parts[3]==='min'){ const sec = runParseMin(raw); if(sec==null || sec<=0) return bad('Vul een duur groter dan 0 in, bijvoorbeeld 3 of 3:30.'); st.sec = sec; }
-    return;
+  if(k==='q'){
+    const s = runSes(parts[1]); if(!s || s.status==='done') return; const q = runQ(s); q[parts[2]] = String(raw);
+    const w = runParseMin(q.warm), r = runParseMin(q.run), wa = runParseMin(q.walk), c = runParseMin(q.cool), n = parseInt(q.reps,10);
+    if(r==null || r<=0 || !(n>=1 && n<=50) || w==null || wa==null || c==null) return bad('Controleer de velden: duur als 3 of 3:30, intervallen tussen 1 en 50.');
+    s.steps = runStepsFromParams({ warmupMin:w/60, reps:n, runMin:r/60, walkMin:wa/60, cooldownMin:c/60 }); coachSoon(); return;
   }
-  if(k==='q'){ RUI.q = RUI.q || {}; const q = RUI.q[parts[1]] = RUI.q[parts[1]] || {}; q[parts[2]] = String(raw); return; }
-  if(k==='pre'){
-    const d = parts[1]; if(!runValidDate(d)) return; const c = rp.checks[d] = rp.checks[d] || {}; const f = parts[2];
-    // energie is één waarde: dezelfde als in de Ochtendcheck van die dag (kiezen of leegmaken geldt voor allebei)
-    if(f==='energy'){ const l = ensureLog(d); if(raw===''){ l.energy = null; delete c.energy; } else { const n = numIn(raw,1,10); if(n===undefined) return bad('Energie: 1 t/m 10.'); l.energy = n; delete c.energy; } }
-    else if(f==='painLeft'){ if(raw===''){ delete c.painLeft; } else { const n = numIn(raw,0,10); if(n===undefined) return bad('Pijn: 0 t/m 10.'); c.painLeft = n; } }
-    else if(f==='painWalking' || f==='painStairs'){ const b = runBool(raw); if(b===null) delete c[f]; else c[f] = b; }
-    else if(f==='note') c.note = String(raw);
-    return;
-  }
-  if(k==='post' || k==='next'){
-    const s = runSes(parts[1]); if(!s) return; const o = s[k] = s[k] || {}; const f = parts[2];
-    if(f==='rpe' || f==='painDuring' || f==='energy'){ const lo = f==='painDuring'?0:1; if(raw===''){ delete o[f]; } else { const n = numIn(raw,lo,10); if(n===undefined) return bad('Waarde tussen '+lo+' en 10.'); o[f] = n; } }
+  if(k==='post'){
+    const s = runSes(parts[1]); if(!s) return; const o = s.post = s.post || {}; const f = parts[2];
+    if(f==='rpe' || f==='painDuring'){ const lo = f==='painDuring'?0:1; if(raw===''){ delete o[f]; } else { const n = numIn(raw,lo,10); if(n===undefined) return bad('Waarde tussen '+lo+' en 10.'); o[f] = n; } }
     else if(f==='painIncreased' || f==='gaitChanged'){ const b = runBool(raw); if(b===null) delete o[f]; else o[f] = b; }
-    else if(f==='trend'){ if(['weg','gelijk','toegenomen'].includes(raw)) o.trend = raw; else delete o.trend; }
     else if(f==='note') o.note = String(raw);
     return;
   }
-  if(k==='set'){
-    const f = parts[1];
-    if(f==='planWeeksAhead'){ const n = numIn(raw,1,8); if(n===undefined) return bad('Weken: 1 t/m 8.'); rp.settings.planWeeksAhead = Math.round(n); }
-    else if(f==='autoLinkGarmin') rp.settings.autoLinkGarmin = raw==='ja';
-    else if(f==='replaceGarminCoach') rp.settings.replaceGarminCoach = raw==='ja';
-    else if(f==='physioNote') rp.settings.physioNote = raw==='ja';
-    else if(f==='th'){ const n = numIn(raw,0,365); if(n===undefined) return bad('Vul een geldig getal in.'); rp.settings.thresholds[parts[2]] = n; }
-    return;
-  }
+  if(k==='set' && parts[1]==='planWeeksAhead'){ const n = numIn(raw,1,8); if(n===undefined) return bad('Weken: 1 t/m 8.'); rp.settings.planWeeksAhead = Math.round(n); }
 }
 
 /* ---------- knoppen en acties ---------- */
@@ -5567,55 +5435,39 @@ function runAct0(act, args, el){
   const s = args[0] ? runSes(args[0]) : null;
   if(act.startsWith('coach')) return coachAct(act, args);
   switch(act){
-    case 'plan': { const t = runTpl(args[1]) || runCurrentTpl(); if(rp.restDays[args[0]]) delete rp.restDays[args[0]]; const n = runPlanOn(args[0], t); if(n && n.id) runMsg(n.name+' ingepland op '+runDateShort(args[0])+'.'); break; }
+    case 'tab': RUI.tab = args[0]==='program' ? 'program' : 'overview'; break;
+    case 'open': if(s){ RUI.tab = 'program'; RUI.openId = s.id; RUI.scrollTo = s.id; } break;
+    case 'plan': { const t = runTpl(args[1]) || runCurrentTpl(); if(rp.restDays[args[0]]) delete rp.restDays[args[0]]; const n = runPlanOn(args[0], t); if(n && n.id){ RUI.openId = n.id; runMsg(n.name+' ingepland op '+runDateShort(args[0])+'.'); } break; }
     case 'planAhead': { const t = runCurrentTpl(), ds = runSuggestionDates(today, (rp.settings.planWeeksAhead||2)+1).filter(d=>d>=today);
-      if(!ds.length) return runMsg('Er zijn geen vrije standaarddagen om in te vullen.');
-      if(!confirm(ds.length+' training(en) van '+t.name+' inplannen op: '+ds.map(runDateShort).join(', ')+'?\n\nDit zijn voorstellen; je kunt ze altijd verplaatsen, overslaan of verwijderen.')) return;
+      if(!ds.length) return runMsg('Er zijn geen vrije trainingsdagen om in te vullen.');
+      if(!confirm(ds.length+' training(en) van '+t.name+' inplannen op: '+ds.map(runDateShort).join(', ')+'?')) return;
       ds.forEach(d=>runPlanOn(d,t)); runMsg(ds.length+' trainingen ingepland.'); break; }
-    case 'newOnDate': { const d = (document.getElementById('runNewDate')||{}).value; const n = runPlanOn(d, runCurrentTpl()); if(n && n.id) runMsg('Training toegevoegd op '+runDateShort(d)+'.'); break; }
-    case 'addDonePrompt': { const d = prompt('Op welke datum heb je getraind? (jjjj-mm-dd)', addDays(today,-1)); if(!d) return; if(!runValidDate(d)) return runMsg('Ongeldige datum.','err'); const n = runPlanOn(d, runCurrentTpl()); n.status = 'done'; n.doneAt = runNow(); n.addedAfterwards = true; const c = runCandidates(d); if(c.length===1) runLinkActivity(n.id, c[0].externalId); RUI.selId = n.id; RUI.tab = 'garmin'; runMsg('Gedane training toegevoegd. Vul hieronder de evaluatie in.'); break; }
-    case 'addDoneFrom': { const a = runActivity(args[0]); if(!a) return; const n = runPlanOn(a.date, runCurrentTpl()); n.status = 'done'; n.doneAt = runNow(); n.addedAfterwards = true; runLinkActivity(n.id, a.externalId); RUI.selId = n.id; runMsg('Toegevoegd als gedane training. Vul de evaluatie in als je wilt.'); break; }
-    case 'link': { const r = runLinkActivity(args[0], args[1]); if(!r.ok) return runMsg(r.msg,'err'); runMsg('Garmin-run gekoppeld.'); break; }
-    case 'unlink': if(s){ s.garminExternalId = null; s.manual = null; s.status = 'planned'; delete s.doneAt; runMsg('Uitvoering ongedaan gemaakt; de training staat weer op "gepland".'); } break;
-    case 'doneManual': if(s){ s.status = 'done'; s.doneAt = runNow(); s.manual = s.manual || {}; runMsg('Als uitgevoerd gemarkeerd (zonder Garmin-run).'); } break;
-    case 'skip': if(s){ s.status = 'skipped'; runMsg('Overgeslagen. Dit telt niet als uitgevoerd en niet als achteruitgang.'); coachOfferRemove(s); } break;
-    case 'cancel': if(s){ s.status = 'cancelled'; runMsg('Geannuleerd.'); coachOfferRemove(s); } break;
-    case 'reopen': if(s){ s.status = 'planned'; runMsg('Weer gepland.'); } break;
-    case 'del': if(s){ if(s.status==='done') return runMsg('Een uitgevoerde training verwijder je niet.','err'); if(!confirm('Deze geplande training verwijderen?')) return; coachOfferRemove(s); rp.sessions = rp.sessions.filter(x=>x.id!==s.id); if(RUI.selId===s.id) RUI.selId = null; } break;
-    case 'move': if(s){ RUI.selId = s.id; RUI.tab = 'edit'; runMsg('Pas de datum hieronder aan.'); } break;
-    case 'rest': { const d = args[0]; if(rp.restDays[d]) delete rp.restDays[d]; else { const n = runSessionsOn(d).filter(x=>x.status==='planned').length; if(n && !confirm('Op deze dag staat een geplande training. Rustdag markeren? De training blijft staan; verplaats of annuleer hem zelf.')) return; rp.restDays[d] = true; } break; }
+    case 'addDoneFrom': { const a = runActivity(args[0]); if(!a) return; const n = runPlanOn(a.date, runCurrentTpl()); n.status = 'done'; n.doneAt = runNow(); n.addedAfterwards = true; runLinkActivity(n.id, a.externalId); runMsg('Toegevoegd als gedane training. Vul de vragen na de training in als je wilt.'); break; }
+    case 'link': { const r = runLinkActivity(args[0], args[1]); if(!r.ok) return runMsg(r.msg,'err'); RUI.openId = args[0]; runMsg('Run gekoppeld.'); break; }
+    case 'doneManual': if(s){ s.status = 'done'; s.doneAt = runNow(); s.manual = s.manual || {}; RUI.openId = s.id; runMsg('Gedaan, zonder Garmin-run.'); } break;
+    case 'skip': if(s){ s.status = 'skipped'; runMsg('Overgeslagen. Dit telt niet als uitgevoerd en niet als achteruitgang.'); coachAutoRemove(s); } break;
+    case 'undo': if(s){ if(s.status==='done'){ s.garminExternalId = null; s.manual = null; delete s.doneAt; } s.status = 'planned'; RUI.openId = s.id; runMsg('Ongedaan gemaakt: de training staat weer op gepland.'); } break;
+    case 'del': if(s){ if(s.status==='done') return runMsg('Een uitgevoerde training verwijder je niet. Gebruik Ongedaan maken.','err'); if(!confirm('Deze training verwijderen?')) return; coachAutoRemove(s); rp.sessions = rp.sessions.filter(x=>x.id!==s.id); if(RUI.openId===s.id) RUI.openId = null; } break;
+    case 'editToggle': if(s){ RUI.editId = RUI.editId===s.id ? null : s.id; RUI.openId = s.id; delete (RUI.q||{})[s.id]; } break;
     case 'pause': rp.settings.paused = true; rp.settings.pausedFrom = today; runMsg('Programma gepauzeerd. Er worden geen trainingen voorgesteld.'); break;
-    case 'resume': rp.settings.paused = false; rp.settings.pausedFrom = null; runMsg('Programma hervat. Er is niets verschoven; plan zelf nieuwe trainingen in.'); break;
-    case 'shift': { const v = prompt('Alle komende geplande trainingen verschuiven met hoeveel dagen? (negatief = eerder)', '7'); if(v==null) return; const n = parseInt(v,10); if(!Number.isFinite(n) || n===0 || Math.abs(n)>60) return runMsg('Vul een aantal dagen in (1 t/m 60).','err'); const c = rp.sessions.filter(x=>x.status==='planned' && x.date>=today).length; if(!c) return runMsg('Er zijn geen komende geplande trainingen.'); if(!confirm(c+' geplande training(en) '+Math.abs(n)+' dag(en) '+(n>0?'later':'eerder')+' zetten?')) return; runMsg(runShiftFuture(n)+' trainingen verschoven.'); rp.sessions.sort(runByDate); break; }
-    case 'rebuild': { const t = runCurrentTpl(); const fut = rp.sessions.filter(x=>x.status==='planned' && x.date>=today).length; if(!confirm('Alle komende, nog niet uitgevoerde geplande trainingen ('+fut+') verwijderen en opnieuw voorstellen op basis van '+t.name+'?\n\nUitgevoerde, overgeslagen en geannuleerde trainingen blijven staan.')) return; rp.sessions = rp.sessions.filter(x=>!(x.status==='planned' && x.date>=today)); const ds = runSuggestionDates(today,(rp.settings.planWeeksAhead||2)+1).filter(d=>d>=today); ds.forEach(d=>runPlanOn(d,t)); runMsg('Opnieuw samengesteld: '+ds.length+' trainingen van '+t.name+'.'); break; }
+    case 'resume': rp.settings.paused = false; rp.settings.pausedFrom = null; runMsg('Programma hervat.'); break;
     case 'day': { const k = args[0], a = rp.settings.trainingDays; rp.settings.trainingDays = a.includes(k) ? a.filter(x=>x!==k) : DOW.filter(x=>a.includes(x)||x===k); break; }
-    case 'level': { const t = runTpl(args[0]); if(!t) return; if(t.id!==rp.settings.currentTemplateId || args[1]==='handhaven') runSetLevel(t.id, args[1]); runMsg('Huidig niveau: '+t.name+'. Bestaande geplande trainingen zijn niet veranderd.'); break; }
-    case 'own': { const d = args[0], c = rp.checks[d] = rp.checks[d] || {}; if(args[1]) c.own = args[1]; else delete c.own; break; }
-    case 'sesLevel': runChangeSessionLevel(args[0], args[1]); delete (RUI.q||{})[args[0]]; break;
-    case 'rebuildSteps': if(s && s.status!=='done'){ const q = runQ(s), w = runParseMin(q.warm), r = runParseMin(q.run), wa = runParseMin(q.walk), c = runParseMin(q.cool), n = parseInt(q.reps,10);
-        if(r==null || r<=0 || !(n>=1 && n<=50) || w==null || wa==null || c==null) return runMsg('Controleer de snelle velden: duur als 3 of 3:30, aantal tussen 1 en 50.','err');
-        s.steps = runStepsFromParams({ warmupMin:w/60, reps:n, runMin:r/60, walkMin:wa/60, cooldownMin:c/60 }); runMsg('Stappen opnieuw opgebouwd. Totaal: '+runMinLabel(runTotals(s.steps).total)+'.'); } break;
-    case 'resetToTemplate': if(s && s.status!=='done'){ const t = runTpl(s.templateId); if(!t) return runMsg('Het sjabloon bestaat niet meer.','err'); s.steps = runStepsFromParams(t); s.intensity = t.intensity; s.target = { ...(t.target||{type:'none'}) }; delete (RUI.q||{})[s.id]; runMsg('Teruggezet naar de standaard van '+t.name+'.'); } break;
-    case 'saveAsLevel': if(s){ const id = 'T'+runId().slice(1); const runs = s.steps.filter(x=>x.t==='run'), walks = s.steps.filter(x=>x.t==='walk');
-        const t = { id, name:'Eigen niveau', label:'uit '+s.name, description:'', warmupMin:(s.steps.find(x=>x.t==='warmup')?.sec||0)/60, cooldownMin:(s.steps.find(x=>x.t==='cooldown')?.sec||0)/60, reps:Math.max(1,runs.length), runMin:(runs[0]?.sec||180)/60, walkMin:(walks[0]?.sec||0)/60, intensity:s.intensity||'rustig', target:{ ...(s.target||{type:'none'}) }, minRestDays:2, goodSessionsToProceed:2, notes:'Gemaakt op basis van een aangepaste training (uniforme intervallen).' };
-        rp.templates.push(t); RUI.manage = t.id; runMsg('Nieuw niveau "Eigen niveau" toegevoegd (neemt de eerste interval als maat).'); } break;
-    case 'stepAdd': if(s && s.status!=='done'){ const idx = s.steps.length && s.steps[s.steps.length-1].t==='cooldown' ? s.steps.length-1 : s.steps.length; s.steps.splice(idx,0,{ t:args[1], sec:args[1]==='run'?180:120 }); } break;
-    case 'stepDel': if(s && s.status!=='done'){ if(s.steps.length<=1) return runMsg('Een training heeft minstens één stap.','err'); s.steps.splice(+args[1],1); } break;
-    case 'stepDup': if(s && s.status!=='done'){ s.steps.splice(+args[1]+1,0,{ ...s.steps[+args[1]] }); } break;
-    case 'stepUp': if(s && s.status!=='done' && +args[1]>0){ const i = +args[1]; [s.steps[i-1],s.steps[i]] = [s.steps[i],s.steps[i-1]]; } break;
-    case 'stepDown': if(s && s.status!=='done' && +args[1]<s.steps.length-1){ const i = +args[1]; [s.steps[i+1],s.steps[i]] = [s.steps[i],s.steps[i+1]]; } break;
-    case 'tplUp': case 'tplDown': { const i = rp.templates.findIndex(t=>t.id===args[0]), j = act==='tplUp' ? i-1 : i+1; if(i<0 || j<0 || j>=rp.templates.length) return; [rp.templates[i],rp.templates[j]] = [rp.templates[j],rp.templates[i]]; RUI.manage = args[0]; break; }
-    case 'tplDup': { const t = runTpl(args[0]); if(!t) return; const c = JSON.parse(JSON.stringify(t)); c.id = 'T'+runId().slice(1); c.name = t.name+' (kopie)'; rp.templates.splice(rp.templates.indexOf(t)+1,0,c); RUI.manage = c.id; break; }
+    /* niveau kiezen (alleen via de evaluatie); komende trainingen op een ander niveau gaan mee als jij dat wilt */
+    case 'level': { const t = runTpl(args[0]); if(!t) return; const changed = t.id!==rp.settings.currentTemplateId;
+      if(changed || args[1]==='handhaven') runSetLevel(t.id, args[1]);
+      const up = rp.sessions.filter(x=>x.status==='planned' && x.date>=today && x.templateId!==t.id);
+      if(changed && up.length && confirm('Je komende '+up.length+' geplande training'+(up.length===1?'':'en')+' ook naar '+t.name+' zetten?')){ up.forEach(x=>{ runChangeSessionLevel(x.id, t.id); delete (RUI.q||{})[x.id]; }); runMsg('Huidig niveau: '+t.name+'. Je komende trainingen zijn ook '+t.name+'.'); }
+      else runMsg('Huidig niveau: '+t.name+'.'); break; }
+    case 'sesLevel': runChangeSessionLevel(args[0], args[1]); delete (RUI.q||{})[args[0]]; RUI.openId = args[0]; break;
     case 'tplDel': { const t = runTpl(args[0]); if(!t || rp.templates.length<=1) return;
-      if(runDefaultTemplates().some(d=>d.id===t.id)) return runMsg('De standaardniveaus A t/m H kun je niet verwijderen. Pas ze aan onder "Aanpassen" als je iets wilt veranderen.', 'err');
+      if(runDefaultTemplates().some(d=>d.id===t.id)) return runMsg('De standaardniveaus A t/m H kun je niet verwijderen. Pas ze aan als je iets wilt veranderen.', 'err');
       const used = rp.sessions.filter(x=>x.templateId===t.id).length;
       if(used) return runMsg('"'+t.name+'" hoort bij '+used+' training(en) en kan daarom niet worden verwijderd.', 'err');
       if(!confirm('Niveau "'+t.name+'" verwijderen?')) return;
       if(!confirm('Weet je het zeker? "'+t.name+'" wordt definitief verwijderd.')) return;
       rp.templates = rp.templates.filter(x=>x.id!==t.id); if(rp.settings.currentTemplateId===t.id) rp.settings.currentTemplateId = rp.templates[0].id; RUI.manage = null; break; }
     case 'tplEdit': RUI.manage = RUI.manage===args[0] ? null : args[0]; break;
-    case 'tplAdd': { const base = runCurrentTpl(); const c = JSON.parse(JSON.stringify(base)); c.id = 'T'+runId().slice(1); c.name = 'Nieuw niveau'; c.label = ''; rp.templates.push(c); RUI.manage = c.id; runMsg('Nieuw niveau toegevoegd (kopie van het huidige). Pas het aan onder "Aanpassen".'); break; }
-    case 'edit': RUI.selId = args[0]; RUI.tab = 'edit'; break;
+    case 'tplAdd': { const base = runCurrentTpl(); const c = JSON.parse(JSON.stringify(base)); c.id = 'T'+runId().slice(1); c.name = 'Eigen niveau'; c.label = ''; rp.templates.push(c); RUI.manage = c.id; runMsg('Nieuw niveau toegevoegd (kopie van '+base.name+'). Pas het hieronder aan.'); break; }
     case 'exportPeriod': { const r = fitExportPeriod(14); if(!r.ok) return runMsg(r.errors.join('; '), 'err');
       dl(new Blob([r.zip],{type:'application/zip'}), 'Atempo_komende_2_weken_'+today+'.zip');
       runMsg(r.files.length+' training(en) in de zip: '+r.files.map(f=>f.title).join(', ')+'. In Intervals.icu: Library (boek-icoon) › drie puntjes › Import workout, daarna elke workout naar de datum in de naam slepen.'); break; }
@@ -5623,25 +5475,26 @@ function runAct0(act, args, el){
       dl(new Blob([r.zip],{type:'application/zip'}), 'Hardlopen_niveaus_FIT.zip'); runMsg('Zip met '+r.files.length+' workouts gedownload ('+r.files.map(f=>f.title).join(', ')+'). Pak hem uit en kopieer de .fit-bestanden naar het horloge (zie de uitleg hieronder).'); break; }
   }
 }
-/* altijd opslaan en opnieuw tekenen, ook als een actie met een melding eindigt (zodat je die melding ziet) */
-function runAct(act, args, el){ runAct0(act, args, el); saveState(); renderCurrent(); }
+/* altijd opslaan en opnieuw tekenen, ook als een actie met een melding eindigt (zodat je die melding ziet);
+   gewijzigde trainingen die al in Garmin staan gaan vanzelf mee */
+function runAct(act, args, el){ runAct0(act, args, el); saveState(); renderCurrent(); if(!act.startsWith('coach')) coachSoon(); }
 
 document.addEventListener('click', e=>{
-  const ro = e.target.closest && e.target.closest('[data-run-open]'); if(ro){ e.preventDefault(); if(ro.dataset.runOpen) RUI.selId = ro.dataset.runOpen; RUI.tab = 'overview'; RUI.msg = ''; showView('running'); return; }
-  const ra = e.target.closest && e.target.closest('[data-run-open-act]'); if(ra){ e.preventDefault(); const a = runActivity(ra.dataset.runOpenAct); const same = a ? runSessionsOn(a.date)[0] : null; if(same) RUI.selId = same.id; RUI.tab = 'garmin'; RUI.msg = ''; showView('running'); return; }
+  const ro = e.target.closest && e.target.closest('[data-run-open]'); if(ro){ e.preventDefault(); RUI.msg = ''; RUI.tab = 'program'; if(ro.dataset.runOpen){ RUI.openId = ro.dataset.runOpen; RUI.scrollTo = ro.dataset.runOpen; } showView('running'); return; }
+  const ra = e.target.closest && e.target.closest('[data-run-open-act]'); if(ra){ e.preventDefault(); const a = runActivity(ra.dataset.runOpenAct), lm = runLinkedMap(), sid = a ? (lm[a.externalId] || (runSessionsOn(a.date)[0]||{}).id) : null; RUI.msg = '';
+    if(sid){ RUI.tab = 'program'; RUI.openId = sid; RUI.scrollTo = sid; } else RUI.tab = 'overview'; showView('running'); return; }
+  const oc = e.target.closest && e.target.closest('[data-oc-open]'); if(oc){ e.preventDefault(); ui.date = todayISO(); showView('today'); const card = document.getElementById('ocCard'); if(card){ card.open = true; setTimeout(()=>card.scrollIntoView({ block:'start', behavior:'smooth' }), 30); } return; }
   const tab = e.target.closest && e.target.closest('[data-run-tab]'); if(tab){ RUI.tab = tab.dataset.runTab; RUI.msg = ''; const v = document.getElementById('view-running'); if(v) v.innerHTML = ''; /* geen open/dicht-stand meenemen naar een ander tabblad */ renderCurrent(); window.scrollTo({top:0}); return; }
   const b = e.target.closest && e.target.closest('[data-run-act]'); if(!b) return;
   e.preventDefault(); const p = b.dataset.runAct.split('|'); runAct(p[0], p.slice(1), b);
 });
-document.addEventListener('change', e=>{
-  const el = e.target;
-  if(el.hasAttribute && el.hasAttribute('data-run-pick')){
-    RUI.msg = '';
-    if(String(el.value).startsWith('sug:')){ const n = runPlanOn(el.value.slice(4), runCurrentTpl()); if(n && n.id){ RUI.selId = n.id; runMsg(n.name+' ingepland op '+runDateShort(n.date)+'. Pas hieronder de datum of de training aan.'); saveState(); } }
-    else RUI.selId = el.value;
-    renderCurrent(); return;
-  }
-});
+/* kalender: één training tegelijk open (rustig op de telefoon); de keuze blijft staan bij opnieuw tekenen */
+document.addEventListener('toggle', e=>{
+  const dt = e.target; if(!dt.matches || !dt.matches('details[data-run-day]')) return;
+  const id = dt.dataset.runDay;
+  if(dt.open){ RUI.openId = id; document.querySelectorAll('details[data-run-day][open]').forEach(o=>{ if(o!==dt) o.open = false; }); }
+  else if(RUI.openId===id){ RUI.openId = null; if(RUI.editId===id) RUI.editId = null; }
+}, true);
 
 /* ===========================================================================
    HARDLOPEN — deel 4: Atempo Personal Coach (proef) — trainingen naar Intervals.icu → Garmin
@@ -5657,7 +5510,7 @@ const COACH_SCOPE = 'CALENDAR:WRITE,ACTIVITY:READ,WELLNESS:READ';   // agenda be
 const COACH_SS = 'atempo-intervals';                        // sessionStorage-sleutel (alleen dit tabblad, tijdelijk)
 const COACH_EXT_RE = /^atempo-[A-Za-z0-9_-]{1,64}$/;
 
-function coachSet(){ const st = RP().settings; st.coach = { variant:'fit', lastOkAt:null, lastError:null, athlete:null, test:null, ...(st.coach||{}) }; return st.coach; }
+function coachSet(){ const st = RP().settings; st.coach = { variant:'text', lastOkAt:null, lastError:null, athlete:null, test:null, ...(st.coach||{}) }; return st.coach; }
 const coachExtId = s => 'atempo-' + s.id;
 const coachInfo = s => (s && s.ext && s.ext.intervals) || null;
 function coachHash(s){       // vingerafdruk van wat naar Garmin gaat: datum, naam, stappen en doel
@@ -5693,7 +5546,7 @@ async function coachConnect(){
   if(!COACH_CLIENT_ID) return runMsg('De Atempo-app is nog niet goedgekeurd door Intervals.icu.', 'err');
   if(coachHere()!==COACH_REDIRECT) return runMsg('Verbinden met Intervals.icu kan alleen in de webversie (rensstam.github.io/trainingsplan).', 'err');
   const url = await coachAuthUrl();
-  coachSessSave({ ...coachSess(), back:{ view:ui.view, tab:RUI.tab, selId:RUI.selId } });
+  coachSessSave({ ...coachSess(), back:{ view:ui.view, tab:RUI.tab, openId:RUI.openId } });
   location.href = url;
 }
 /* terugkomst van Intervals.icu: ?code=…&state=… omwisselen voor een toegangsbewijs */
@@ -5812,7 +5665,7 @@ async function coachCall(data){
   return { deleted: j && j.eventsDeleted };
 }
 /* bij het opstarten: terugkomst van Intervals.icu afhandelen */
-window.addEventListener('load', ()=>{ coachHandleRedirect().then(back=>{ if(coachConnected()) setTimeout(()=>coachFetchRuns(true), 1500); if(back){ saveState(); const ss = coachSess(), b = ss.back || {}; delete ss.back; coachSessSave(ss); if(typeof showView==='function'){ RUI.tab = b.tab || 'garmin'; if(b.selId) RUI.selId = b.selId; showView(b.view || 'running'); } } }); });
+window.addEventListener('load', ()=>{ coachHandleRedirect().then(back=>{ if(coachConnected()) setTimeout(()=>coachFetchRuns(true), 1500); if(back){ saveState(); const ss = coachSess(), b = ss.back || {}; delete ss.back; coachSessSave(ss); if(typeof showView==='function'){ RUI.tab = b.tab || 'program'; if(b.openId){ RUI.openId = b.openId; RUI.scrollTo = b.openId; } showView(b.view || 'running'); } } }); });
 
 /* Intervals.icu-workouttekst (variant B); Warmup/Cooldown als kopjes zodat Intervals.icu de stapsoort herkent */
 function coachText(s){
@@ -5840,31 +5693,41 @@ function coachPayload(s, variant, extId){
 }
 function coachRerender(){ saveState(); if(typeof ui!=='undefined' && ['running','data','progress','today'].includes(ui.view)) renderCurrent(); }
 
-async function coachSend(s){
+async function coachSend(s, auto){
   const c = coachSet(), extId = coachExtId(s), prev = coachInfo(s) || {};
   RUI.coachBusy = s.id; coachRerender();
   try {
     const res = await coachCall({ action:'upsert', events:[coachPayload(s, 'text')] });
     const ev = (res.events||[])[0] || {};
     s.ext = s.ext || {}; s.ext.intervals = { externalId:extId, eventId: ev.id ?? prev.eventId ?? null, syncedAt:runNow(), status:'sent', error:null, hash:coachHash(s), variant:'text', gcSeen:false, watchSeen:false };
-    c.lastOkAt = runNow(); c.lastError = null; runMsg('Verzonden naar Intervals.icu. Garmin krijgt hem binnen het venster van ongeveer 7 dagen; synchroniseer daarna je horloge.');
+    c.lastOkAt = runNow(); c.lastError = null;
+    runMsg(auto ? 'Bijgewerkt in Garmin.' : s.date > addDays(todayISO(),7) ? 'Naar Garmin gestuurd. Hij komt ongeveer 7 dagen van tevoren op je horloge.' : 'Naar Garmin gestuurd. Synchroniseer je horloge.');
   } catch(e){
     s.ext = s.ext || {}; s.ext.intervals = { ...prev, externalId:extId, status:'error', error:e.message, failedAt:runNow() };
     c.lastError = e.message; runMsg('Synchronisatie mislukt: '+e.message+' — de training staat gewoon in Atempo.', 'err');
   } finally { RUI.coachBusy = null; coachRerender(); }
 }
-async function coachRemove(extId, s){
+async function coachRemove(extId, s, auto){
   try {
     await coachCall({ action:'delete', externalIds:[extId] });
     if(s){ s.ext = s.ext || {}; s.ext.intervals = { ...(coachInfo(s)||{}), externalId:extId, status:'deleted', syncedAt:runNow(), error:null }; }
-    coachSet().lastError = null; runMsg('Uit Intervals.icu verwijderd. Garmin werkt dat bij de volgende synchronisatie bij (nog te controleren).');
+    coachSet().lastError = null; runMsg(auto ? (RUI.msg ? RUI.msg+' ' : '')+'Ook uit Garmin gehaald.' : 'Uit Garmin gehaald.');
   } catch(e){ coachSet().lastError = e.message; runMsg('Verwijderen in Intervals.icu mislukt: '+e.message, 'err'); }
   coachRerender();
 }
-/* bij overslaan, annuleren of verwijderen in Atempo: aanbieden de externe afspraak weg te halen (nooit automatisch) */
-function coachOfferRemove(s){
+/* overslaan of verwijderen in Atempo: staat de training in Garmin, dan gaat hij daar vanzelf ook weg */
+function coachAutoRemove(s){
   const i = coachInfo(s); if(!i || (i.status!=='sent' && i.status!=='error')) return;
-  if(confirm('Deze training staat ook in Intervals.icu (en mogelijk op je Garmin). Daar ook weghalen?')) coachRemove(i.externalId, s);
+  if(coachConnected()) coachRemove(i.externalId, s, true);
+  else runMsg('Let op: deze training staat nog in Garmin. Verbind met Intervals.icu (Data & backup) om hem daar weg te halen.', 'err');
+}
+/* een training die al in Garmin staat en in Atempo verandert (datum, stappen, niveau), gaat vanzelf mee */
+function coachSoon(){ clearTimeout(coachSoon.t); coachSoon.t = setTimeout(coachSyncChanged, 1200); }
+async function coachSyncChanged(){
+  if(!coachConnected() || RUI.coachBusy) return 0;
+  const list = RP().sessions.filter(s=> s.status==='planned' && coachState(s)==='changed');
+  for(const s of list) await coachSend(s, true);
+  return list.length;
 }
 function coachAct(act, args){
   const s = args[0] ? runSes(args[0]) : null;
@@ -5877,8 +5740,7 @@ function coachAct(act, args){
       if(s.date <= addDays(todayISO(),1) && rd.shown==='red' && !confirm('Je herstelstatus is rood: '+runStatusHeadline(rd)+'\n\nToch naar Garmin sturen? Jij beslist.')) return;
       coachSend(s); return;
     }
-    case 'coachRemove': { const i = coachInfo(s); if(i && confirm('Deze training uit Intervals.icu halen? In Atempo blijft hij staan.')) coachRemove(i.externalId, s); return; }
-    case 'coachSeen': { const i = coachInfo(s); if(!i) return; if(args[1]==='gc') i.gcSeen = !i.gcSeen; if(args[1]==='watch') i.watchSeen = !i.watchSeen; return; }
+    case 'coachRemove': { const i = coachInfo(s); if(i) coachRemove(i.externalId, s); return; }
     case 'coachConnect': coachConnect(); return;
     case 'coachRuns': RUI.coachBusy = 'runs'; coachRerender(); coachFetchRuns(false).finally(()=>{ RUI.coachBusy = null; coachRerender(); }); return;
     case 'coachDisconnect': if(confirm('Verbinding met Intervals.icu verbreken? Je kunt later opnieuw verbinden.')) coachDisconnect(); return;
@@ -5886,40 +5748,21 @@ function coachAct(act, args){
 }
 
 /* ---------- weergave ---------- */
-const COACH_STATE_NL = { local:'Alleen in Atempo opgeslagen', sent:'Verzonden naar Intervals.icu', changed:'Gewijzigd na verzenden — nog niet bijgewerkt', error:'Synchronisatie mislukt' };
 function coachPill(s){
   const st = coachState(s); if(st==='local') return '';
-  return ` <span class="pill ${st==='sent'?'done':st==='error'?'warn':''}">${st==='sent'?'↗ Intervals.icu':st==='changed'?'↗ wijziging niet verzonden':'↗ fout'}</span>`;
+  return ` <span class="pill ${st==='sent'?'done':st==='error'?'warn':''}">${st==='sent'?'✓ Garmin':st==='changed'?'Garmin: gewijzigd':'Garmin: fout'}</span>`;
 }
-/* verbindknop op de plek waar je hem nodig hebt */
-function coachConnectHTML(){
-  if(!COACH_CLIENT_ID) return '<p class="tny muted">De koppeling met Intervals.icu is nog niet beschikbaar.</p>';
-  if(coachHere()!==COACH_REDIRECT) return '<p class="tny muted">Naar Garmin sturen kan alleen in de webversie: rensstam.github.io/trainingsplan.</p>';
-  return `<div class="run-actions">${runBtn('coachConnect','Verbinden met Intervals.icu','primary sm')}</div><p class="tny muted">Je geeft bij Intervals.icu toestemming (alleen voor je trainingsagenda) en komt daarna vanzelf hier terug.</p>`;
-}
-function coachCardHTML(s){
+/* Garmin bij één training: één regel met de status en de knop die erbij hoort */
+function coachLineHTML(s){
   if(!s || s.status!=='planned') return '';
-  const st = coachState(s), i = coachInfo(s), busy = RUI.coachBusy===s.id;
-  const btn = busy ? '<span class="tny muted">Bezig met versturen…</span>'
-    : runBtn('coachSend|'+s.id, st==='local' ? 'Naar Garmin sturen' : st==='changed' ? 'Wijziging synchroniseren' : st==='error' ? 'Synchronisatie mislukt — opnieuw proberen' : 'Opnieuw versturen', st==='sent' ? 'sm' : 'primary');
-  const rd = runReadiness(todayISO()), warn = s.date <= addDays(todayISO(),1) && rd.shown!=='green'
-    ? `<div class="warnline">Herstelstatus ${esc(RUN_LIGHT[rd.shown].nl.toLowerCase())}: ${esc(runStatusHeadline(rd))}</div>` : '';
-  const row = (ok, label, extra) => `<div class="row"><span class="k">${label}</span><span class="v ${ok?'ok':'na'}">${ok?'✓':'—'}${extra||''}</span></div>`;
-  return `<div class="card"><h3>Naar Garmin via Intervals.icu <span class="sub">Atempo Personal Coach · proef</span></h3>
-    <div class="week-track">
-      ${row(true, 'Training lokaal opgeslagen')}
-      ${row(st==='sent' || st==='changed', 'Verzonden naar Intervals.icu', i && i.syncedAt && st!=='local' ? ' <span class="tny muted">'+esc(new Date(i.syncedAt).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))+'</span>' : '')}
-      ${row(i && i.gcSeen && st==='sent', 'Zichtbaar in Garmin Connect', ' <span class="tny muted">door jou bevestigd</span>')}
-      ${row(i && i.watchSeen && st==='sent', 'Staat op mijn horloge', ' <span class="tny muted">door jou bevestigd</span>')}
-    </div>
-    ${warn}
-    ${st==='error' ? `<div class="warnline">${esc(i.error||'Onbekende fout')}</div>` : ''}
-    ${st==='changed' ? '<p class="tny muted">De training is in Atempo gewijzigd (datum, stappen of doel). Verstuur de wijziging; er komt geen tweede afspraak bij.</p>' : ''}
-    ${coachConnected() ? '' : coachConnectHTML()}
-    <div class="run-actions">${coachConnected() ? btn : ''}
-      ${st==='sent' ? runBtn('coachSeen|'+s.id+'|gc', i.gcSeen ? 'Toch niet in Garmin Connect' : 'Gezien in Garmin Connect', 'sm') + runBtn('coachSeen|'+s.id+'|watch', i.watchSeen ? 'Toch niet op horloge' : 'Staat op mijn horloge', 'sm') : ''}
-      ${st!=='local' ? runBtn('coachRemove|'+s.id, 'Uit Intervals.icu halen', 'sm') : ''}</div>
-    <p class="tny muted">Intervals.icu stuurt alleen de komende ±7 dagen door naar Garmin. Werkt het niet draadloos, dan staan FIT-bestanden voor de kabel bij Data &amp; backup.</p></div>`;
+  if(!coachConnected()) return coachCanConnect() ? `<div class="run-g">${runBtn('coachConnect','Verbinden met Intervals.icu','sm')}<span class="tny muted">om trainingen naar Garmin te sturen</span></div>` : '';
+  const st = coachState(s), i = coachInfo(s);
+  if(RUI.coachBusy===s.id) return '<div class="run-g"><span class="tny muted">Bezig met versturen…</span></div>';
+  const when = i && i.syncedAt ? esc(new Date(i.syncedAt).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})) : '';
+  if(st==='sent') return `<div class="run-g"><span class="run-g-ok">✓ Naar Garmin gestuurd</span> <span class="tny muted">${when}</span>${runBtn('coachRemove|'+s.id,'Uit Garmin halen','sm')}</div>`;
+  if(st==='changed') return `<div class="run-g"><span class="tny">Gewijzigd na versturen</span>${runBtn('coachSend|'+s.id,'Opnieuw sturen','sm primary')}</div>`;
+  if(st==='error') return `<div class="run-g"><span class="warnline" style="margin:0">Versturen mislukt: ${esc(i.error||'onbekende fout')}</span>${runBtn('coachSend|'+s.id,'Opnieuw proberen','sm primary')}</div>`;
+  return `<div class="run-g">${runBtn('coachSend|'+s.id,'Naar Garmin','sm primary')}</div>`;
 }
 function coachSettingsHTML(){
   const c = coachSet(), con = coachConnected(), busy = RUI.coachBusy==='runs';
