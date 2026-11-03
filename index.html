@@ -484,7 +484,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.7.4";
+const APP_VERSION = "block2-2.8.0";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -5449,7 +5449,8 @@ function runViewProgram(){
     h += `<div class="run-week"><div class="run-week-h">Week ${runIsoWeek(mon)} · ${esc(fmt(mon,{day:'numeric',month:'short'}))} – ${esc(fmt(sun,{day:'numeric',month:'short'}))}</div>${rows}</div>`;
   }
   const free = runSuggestionDates(today, ahead+1).filter(d=>d>=today).length;
-  h += `<div class="run-actions">${free ? runBtn('planAhead','Vul de voorstellen in ('+free+'× '+esc(cur.name)+')','sm primary') : ''}${rp.settings.paused?runBtn('resume','Hervatten','sm'):runBtn('pause','Pauzeren','sm')}</div></div>`;
+  const toSync = rp.sessions.filter(s=> s.status==='planned' && s.date>=today && coachState(s)!=='sent').length, canSync = coachConnected() || coachCanConnect();
+  h += `<div class="run-actions">${free ? runBtn('planAhead','Vul de voorstellen in ('+free+'× '+esc(cur.name)+')','sm primary') : ''}${canSync ? (RUI.coachBusy==='all' ? '<span class="tny muted">Bezig met synchroniseren…</span>' : runBtn('coachSync', 'Sync met Garmin'+(toSync ? ' ('+toSync+')' : ''), 'sm'+(toSync && !free ? ' primary' : ''))) : ''}${rp.settings.paused?runBtn('resume','Hervatten','sm'):runBtn('pause','Pauzeren','sm')}</div></div>`;
 
   /* instellingen */
   h += `<details class="acc"><summary>Instellingen</summary><div class="acc-body">
@@ -5535,9 +5536,6 @@ function runAct0(act, args, el){
       rp.templates = rp.templates.filter(x=>x.id!==t.id); if(rp.settings.currentTemplateId===t.id) rp.settings.currentTemplateId = rp.templates[0].id; RUI.manage = null; break; }
     case 'tplEdit': RUI.manage = RUI.manage===args[0] ? null : args[0]; break;
     case 'tplAdd': { const base = runCurrentTpl(); const c = JSON.parse(JSON.stringify(base)); c.id = 'T'+runId().slice(1); c.name = 'Eigen niveau'; c.label = ''; rp.templates.push(c); RUI.manage = c.id; runMsg('Nieuw niveau toegevoegd (kopie van '+base.name+'). Pas het hieronder aan.'); break; }
-    case 'exportPeriod': { const r = fitExportPeriod(14); if(!r.ok) return runMsg(r.errors.join('; '), 'err');
-      dl(new Blob([r.zip],{type:'application/zip'}), 'Atempo_komende_2_weken_'+today+'.zip');
-      runMsg(r.files.length+' training(en) in de zip: '+r.files.map(f=>f.title).join(', ')+'. In Intervals.icu: Library (boek-icoon) › drie puntjes › Import workout, daarna elke workout naar de datum in de naam slepen.'); break; }
     case 'exportAllLevels': { const r = fitExportAllLevels(); if(!r.ok) return runMsg('Export geblokkeerd: '+r.errors.join('; '),'err');
       dl(new Blob([r.zip],{type:'application/zip'}), 'Hardlopen_niveaus_FIT.zip'); runMsg('Zip met '+r.files.length+' workouts gedownload ('+r.files.map(f=>f.title).join(', ')+'). Pak hem uit en kopieer de .fit-bestanden naar het horloge (zie de uitleg hieronder).'); break; }
   }
@@ -5791,7 +5789,7 @@ async function coachCall(data){
   return { deleted: j && j.eventsDeleted };
 }
 /* bij het opstarten: terugkomst van Intervals.icu afhandelen */
-window.addEventListener('load', ()=>{ coachHandleRedirect().then(back=>{ if(coachConnected()) setTimeout(()=>coachFetchRuns(true), 1500); if(back){ saveState(); const ss = coachSess(), b = ss.back || {}; delete ss.back; coachSessSave(ss); if(typeof showView==='function'){ RUI.tab = b.tab || 'program'; if(b.openId){ RUI.openId = b.openId; RUI.scrollTo = b.openId; } showView(b.view || 'running'); } } }); });
+window.addEventListener('load', ()=>{ coachHandleRedirect().then(back=>{ if(coachConnected()) setTimeout(()=>coachFetchRuns(true).finally(()=>coachSyncAll(false)), 1500); if(back){ saveState(); const ss = coachSess(), b = ss.back || {}; delete ss.back; coachSessSave(ss); if(typeof showView==='function'){ RUI.tab = b.tab || 'program'; if(b.openId){ RUI.openId = b.openId; RUI.scrollTo = b.openId; } showView(b.view || 'running'); } } }); });
 
 /* Intervals.icu-workouttekst (variant B); Warmup/Cooldown als kopjes zodat Intervals.icu de stapsoort herkent */
 function coachText(s){
@@ -5848,13 +5846,29 @@ function coachAutoRemove(s){
   else runMsg('Let op: deze training staat nog in Garmin. Verbind met Intervals.icu (Data & backup) om hem daar weg te halen.', 'err');
 }
 /* een training die al in Garmin staat en in Atempo verandert (datum, stappen, niveau), gaat vanzelf mee */
-function coachSoon(){ clearTimeout(coachSoon.t); coachSoon.t = setTimeout(coachSyncChanged, 1200); }
-async function coachSyncChanged(){
-  if(!coachConnected() || RUI.coachBusy) return 0;
-  const list = RP().sessions.filter(s=> s.status==='planned' && coachState(s)==='changed');
-  for(const s of list) await coachSend(s, true);
+function coachSoon(){ clearTimeout(coachSoon.t); coachSoon.t = setTimeout(()=>coachSyncAll(false), 1200); }
+/* Sync met Garmin: elke geplande training vanaf vandaag die nog niet (of niet meer actueel) in Intervals.icu staat,
+   gaat in één keer mee. Gebeurt vanzelf zolang je verbonden bent; de knop doet hetzelfde op jouw verzoek. */
+async function coachSyncAll(manual){
+  if(!coachConnected()){ if(manual) runMsg('Verbind eerst met Intervals.icu.', 'err'); return 0; }
+  if(RUI.coachBusy) return 0;
+  const today = todayISO(), list = RP().sessions.filter(s=> s.status==='planned' && s.date>=today && coachState(s)!=='sent');
+  if(!list.length){ if(manual){ runMsg('Alles staat al in Garmin.'); coachRerender(); } return 0; }
+  const c = coachSet(); RUI.coachBusy = 'all'; if(manual) coachRerender();
+  try {
+    const res = await coachCall({ action:'upsert', events:list.map(s=>coachPayload(s, 'text')) });
+    const ids = new Map((res.events||[]).map(e=>[e.external_id, e.id]));
+    list.forEach(s=>{ const extId = coachExtId(s), prev = coachInfo(s) || {};
+      s.ext = s.ext || {}; s.ext.intervals = { externalId:extId, eventId: ids.get(extId) ?? prev.eventId ?? null, syncedAt:runNow(), status:'sent', error:null, hash:coachHash(s), variant:'text' }; });
+    c.lastOkAt = runNow(); c.lastError = null;
+    runMsg(list.length===1 ? '1 training gesynchroniseerd met Garmin.' : list.length+' trainingen gesynchroniseerd met Garmin.');
+  } catch(e){
+    list.forEach(s=>{ const prev = coachInfo(s) || {}; s.ext = s.ext || {}; s.ext.intervals = { ...prev, externalId:coachExtId(s), status:'error', error:e.message, failedAt:runNow() }; });
+    c.lastError = e.message; runMsg('Sync met Garmin mislukt: '+e.message+' — je trainingen staan gewoon in Atempo.', 'err');
+  } finally { RUI.coachBusy = null; coachRerender(); }
   return list.length;
 }
+const coachSyncChanged = () => coachSyncAll(false);
 function coachAct(act, args){
   const s = args[0] ? runSes(args[0]) : null;
   if(['coachSend','coachRemove','coachRuns'].includes(act) && !coachConnected())
@@ -5868,6 +5882,7 @@ function coachAct(act, args){
     }
     case 'coachRemove': { const i = coachInfo(s); if(i) coachRemove(i.externalId, s); return; }
     case 'coachConnect': coachConnect(); return;
+    case 'coachSync': if(coachConnected()) coachSyncAll(true); else coachConnect(); return;
     case 'coachRuns': RUI.coachBusy = 'runs'; coachRerender(); coachFetchRuns(false).finally(()=>{ RUI.coachBusy = null; coachRerender(); }); return;
     case 'coachDisconnect': if(confirm('Verbinding met Intervals.icu verbreken? Je kunt later opnieuw verbinden.')) coachDisconnect(); return;
   }
@@ -5878,17 +5893,14 @@ function coachPill(s){
   const st = coachState(s); if(st==='local') return '';
   return ` <span class="pill ${st==='sent'?'done':st==='error'?'warn':''}">${st==='sent'?'✓ Garmin':st==='changed'?'Garmin: gewijzigd':'Garmin: fout'}</span>`;
 }
-/* Garmin bij één training: één regel met de status en de knop die erbij hoort */
+/* Garmin bij één training: alleen de stand (synchroniseren gaat vanzelf of met Sync met Garmin in de kalender) */
 function coachLineHTML(s){
-  if(!s || s.status!=='planned') return '';
-  if(!coachConnected()) return coachCanConnect() ? `<div class="run-g">${runBtn('coachConnect','Verbinden met Intervals.icu','sm')}<span class="tny muted">om trainingen naar Garmin te sturen</span></div>` : '';
+  if(!s || s.status!=='planned' || s.date<todayISO()) return '';
   const st = coachState(s), i = coachInfo(s);
-  if(RUI.coachBusy===s.id) return '<div class="run-g"><span class="tny muted">Bezig met versturen…</span></div>';
-  const when = i && i.syncedAt ? esc(new Date(i.syncedAt).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})) : '';
-  if(st==='sent') return `<div class="run-g"><span class="run-g-ok">✓ Naar Garmin gestuurd</span> <span class="tny muted">${when}</span>${runBtn('coachRemove|'+s.id,'Uit Garmin halen','sm')}</div>`;
-  if(st==='changed') return `<div class="run-g"><span class="tny">Gewijzigd na versturen</span>${runBtn('coachSend|'+s.id,'Opnieuw sturen','sm primary')}</div>`;
-  if(st==='error') return `<div class="run-g"><span class="warnline" style="margin:0">Versturen mislukt: ${esc(i.error||'onbekende fout')}</span>${runBtn('coachSend|'+s.id,'Opnieuw proberen','sm primary')}</div>`;
-  return `<div class="run-g">${runBtn('coachSend|'+s.id,'Naar Garmin','sm primary')}</div>`;
+  if(st==='sent') return `<div class="run-g"><span class="run-g-ok">✓ In Garmin</span> <span class="tny muted">${i && i.syncedAt ? esc(new Date(i.syncedAt).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})) : ''}</span></div>`;
+  if(st==='error') return `<div class="run-g"><span class="warnline" style="margin:0">Sync met Garmin mislukt: ${esc(i.error||'onbekende fout')}</span>${runBtn('coachSync','Opnieuw','sm')}</div>`;
+  if(RUI.coachBusy) return '<div class="run-g"><span class="tny muted">Bezig met synchroniseren…</span></div>';
+  return coachConnected() ? '<div class="run-g"><span class="tny muted">Gaat zo vanzelf naar Garmin.</span></div>' : coachCanConnect() ? `<div class="run-g"><span class="tny muted">Nog niet in Garmin.</span>${runBtn('coachSync','Sync met Garmin','sm')}</div>` : '';
 }
 function coachSettingsHTML(){
   const c = coachSet(), con = coachConnected(), busy = RUI.coachBusy==='runs';
@@ -5902,10 +5914,10 @@ function coachSettingsHTML(){
       ${c.needActivityScope ? `<div class="warnline">Atempo mag nog niet al je gegevens lezen. Klik op Verbinding verbreken en daarna op Verbinden met Intervals.icu, en geef toestemming voor activiteiten en dagwaarden.</div>` : ''}
     </div>
     <div class="run-actions">${busy ? '<span class="tny muted">Bezig…</span>' : con ? runBtn('coachRuns','Nu ophalen','sm primary')+runBtn('coachDisconnect','Verbinding verbreken','sm') : coachCanConnect() ? runBtn('coachConnect','Verbinden met Intervals.icu','sm primary') : ''}</div>
-    <p class="tny muted">Trainingen stuur je bij Hardlopen › Garmin &amp; resultaten. Je runs en dagwaarden (HRV, rustpols, slaap, gewicht, VO₂-max) worden bij het openen vanzelf opgehaald.</p>
+    <p class="tny muted">Je geplande trainingen gaan vanzelf naar Garmin (Sync met Garmin). Je runs en dagwaarden (HRV, rustpols, slaap, gewicht, VO₂-max) worden bij het openen vanzelf opgehaald.</p>
     <details class="acc" style="margin-top:10px"><summary>Reserve: trainingen via de kabel (FIT-bestanden)</summary><div class="acc-body">
       <p class="tny muted">Alleen nodig als de draadloze route via Intervals.icu niet werkt.</p>
-      <div class="run-actions">${runBtn('exportAllLevels','Alle niveaus (A–H) als zip','sm')}${runBtn('exportPeriod','Komende 2 weken als zip','sm')}</div>
+      <div class="run-actions">${runBtn('exportAllLevels','Alle niveaus (A–H) als zip','sm')}</div>
       <details class="acc"><summary>Uitleg: .fit-bestanden via de kabel op je horloge zetten</summary><div class="acc-body"><ol class="small run-ol"><li>Pak de zip uit (rechtermuisknop › Alles uitpakken). Sluit je Forerunner 165 met de kabel aan op je computer.</li><li>Open het horloge in de Verkenner › map <b>GARMIN</b> › <b>NewFiles</b> (bestaat die niet: probeer de map <b>Workouts</b>).</li><li>Kopieer het .fit-bestand (of bij de zip: alle bestanden — begin desnoods met alleen <b>Niveau_A.fit</b> als test) erin, werp het horloge veilig uit en koppel los. Het horloge verplaatst de bestanden zelf naar <b>Workouts</b>; start het zo nodig opnieuw op.</li><li>Op het horloge: <b>START</b> › <b>Hardlopen</b> › houd <b>UP</b> ingedrukt › <b>Training</b> › <b>Workouts</b> (of <b>Mijn workouts</b>) — daar staan Niveau A t/m H.</li></ol><div class="tny muted">Dit is de route die gebruikers voor veel Garmin-modellen beschrijven; Garmin zelf publiceert deze stappen niet per model. Naam wordt op sommige horloges na 15 tekens afgekapt.</div></div></details>
     </div></details>`;
 }
