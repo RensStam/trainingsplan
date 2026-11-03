@@ -466,7 +466,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.5.6";
+const APP_VERSION = "block2-2.6.0";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -1050,7 +1050,7 @@ function runAutoLinkAfterImport(newActs){
   for(const a of (newActs||[])){
     if(!runIsRunActivity(a)) continue;
     const cands = runCandidates(a.date); if(cands.length!==1 || cands[0].externalId!==a.externalId) continue;
-    const open = runSessionsOn(a.date).filter(s=> s.status==='planned' && !s.garminExternalId);
+    const open = runSessionsOn(a.date).filter(s=> (s.status==='planned' || s.status==='done') && !s.garminExternalId);   // ook 'gedaan zonder Garmin'
     if(open.length===1 && runLinkActivity(open[0].id, a.externalId).ok) n++;
   }
   return n;
@@ -5491,7 +5491,7 @@ function runViewGarmin(){
   const linked = runLinkedMap(), legacyIds = new Set(CB.coachRuns.map(r=>r.garminExternalId).filter(Boolean));
   const loose = (state.garmin.activities||[]).filter(a=> runIsRunActivity(a) && !linked[a.externalId] && !legacyIds.has(a.externalId) && a.date>=addDays(today,-60)).sort((x,y)=>(y.startTime||y.date).localeCompare(x.startTime||x.date)).slice(0,8);
   if(loose.length) h += `<div class="card"><h3>Garmin-runs zonder training <span class="sub">${loose.length}</span></h3><p class="tny muted">Gemeten door je horloge, nog niet aan een training gekoppeld. Ze blijven gewoon in je Garmin-gegevens staan.</p>
-    ${loose.map(a=>{ const opts = rp.sessions.filter(x=>x.status==='planned' && Math.abs((parseDate(x.date)-parseDate(a.date))/86400000)<=3).sort(runByDate);
+    ${loose.map(a=>{ const opts = rp.sessions.filter(x=>(x.status==='planned' || (x.status==='done' && !x.garminExternalId)) && Math.abs((parseDate(x.date)-parseDate(a.date))/86400000)<=3).sort(runByDate);
       return `<div class="run-row"><b>${esc(runDateShort(a.date))}</b> · ${a.distanceKm!=null?nl(a.distanceKm)+' km':''} · ${a.durationMin!=null?nl(round(a.durationMin,1))+' min':''}${a.avgHr!=null?' · gem. HR '+a.avgHr:''}
         <div class="run-actions">${opts.map(x=>runBtn('link|'+x.id+'|'+a.externalId,'Koppel aan '+esc(runDateShort(x.date))+' '+esc(x.name),'sm')).join('')}${runBtn('addDoneFrom|'+a.externalId,'Voeg toe als gedane training','sm')}</div></div>`; }).join('')}</div>`;
 
@@ -5653,6 +5653,7 @@ document.addEventListener('change', e=>{
 var COACH_CLIENT_ID = '1644';                                   // Client ID van de Atempo-app bij Intervals.icu (openbaar, geen geheim)
 const COACH_REDIRECT = 'https://rensstam.github.io/trainingsplan/';
 const COACH_API = 'https://intervals.icu/api/v1/athlete/0';
+const COACH_SCOPE = 'CALENDAR:WRITE,ACTIVITY:READ';          // agenda beheren + je activiteiten lezen (runs koppelen)
 const COACH_SS = 'atempo-intervals';                        // sessionStorage-sleutel (alleen dit tabblad, tijdelijk)
 const COACH_EXT_RE = /^atempo-[A-Za-z0-9_-]{1,64}$/;
 const COACH_TEST_STEPS = [{ t:'warmup', sec:300 }, { t:'run', sec:180 }, { t:'walk', sec:120 }, { t:'cooldown', sec:300 }];
@@ -5686,7 +5687,7 @@ async function coachChallenge(verifier){
 async function coachAuthUrl(){
   const verifier = coachRnd(48), state = coachRnd(16);
   coachSessSave({ ...coachSess(), pkce:{ verifier, state, at:Date.now() } });
-  return 'https://intervals.icu/oauth/authorize?' + new URLSearchParams({ client_id:COACH_CLIENT_ID, redirect_uri:COACH_REDIRECT, scope:'CALENDAR:WRITE',
+  return 'https://intervals.icu/oauth/authorize?' + new URLSearchParams({ client_id:COACH_CLIENT_ID, redirect_uri:COACH_REDIRECT, scope:COACH_SCOPE,
     state, code_challenge: await coachChallenge(verifier), code_challenge_method:'S256' });
 }
 async function coachConnect(){
@@ -5720,6 +5721,43 @@ async function coachDisconnect(){
   runMsg('Verbinding met Intervals.icu verbroken en het toegangsbewijs ingetrokken.'); coachRerender();
 }
 
+/* ---------- runs ophalen uit Intervals.icu en koppelen aan je trainingen ---------- */
+const COACH_TYPES = { Run:'running', TrailRun:'trail_running', VirtualRun:'virtual_run', Walk:'walking', Hike:'hiking' };
+function coachPace(sec, m){ if(!(sec>0) || !(m>0)) return null; const s = Math.round(sec/(m/1000)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+/* Intervals.icu-activiteit -> Atempo's Garmin-activiteit (zelfde vorm als uit de Garmin-export) */
+function coachMapActivity(a){
+  if(!a || !a.start_date_local) return null;
+  const gid = a.source==='GARMIN_CONNECT' && a.external_id ? String(a.external_id).replace(/\.fit$/i,'') : null;
+  return { externalId: gid ? 'garmin-'+gid : 'icu-'+a.id, date: a.start_date_local.slice(0,10), startTime: a.start_date_local.slice(0,19),
+    type: COACH_TYPES[a.type] || String(a.type||'onbekend').toLowerCase(),
+    durationMin: a.elapsed_time ? Math.round(a.elapsed_time/6)/10 : null, movingMin: a.moving_time ? Math.round(a.moving_time/6)/10 : null,
+    distanceKm: a.distance ? Math.round(a.distance/10)/100 : null, avgPace: coachPace(a.moving_time, a.distance),
+    avgHr: a.average_heartrate!=null ? Math.round(a.average_heartrate) : null, maxHr: a.max_heartrate!=null ? Math.round(a.max_heartrate) : null,
+    vo2max: null, rpe: null, continuousMin: null, _source:'intervals.icu', _syncedAt: runNow() };
+}
+/* haalt de activiteiten van de afgelopen dagen op; nieuwe komen bij je Garmin-gegevens en worden (als het eenduidig is) gekoppeld */
+async function coachFetchRuns(quiet){
+  const token = coachSess().token; if(!token) return quiet ? null : runMsg('Verbind eerst met Intervals.icu.', 'err');
+  const c = coachSet(), oldest = addDays(todayISO(), -14), newest = todayISO();
+  let r; try { r = await fetch(COACH_API+'/activities?oldest='+oldest+'&newest='+newest, { headers:{ Authorization:'Bearer '+token, Accept:'application/json' } }); }
+  catch(e){ if(!quiet) runMsg('Geen verbinding met Intervals.icu.', 'err'); return null; }
+  if(r.status===401 || r.status===403){ c.needActivityScope = true; if(!quiet) runMsg('Atempo mag je activiteiten nog niet lezen. Verbind opnieuw met Intervals.icu en geef ook toestemming voor activiteiten.', 'err'); coachRerender(); return null; }
+  if(!r.ok){ if(!quiet) runMsg('Intervals.icu gaf fout '+r.status+' bij het ophalen van je runs.', 'err'); return null; }
+  const list = await r.json().catch(()=>[]); c.needActivityScope = false;
+  const acts = state.garmin.activities, have = new Set(acts.map(a=>a.externalId)), added = [];
+  for(const x of (Array.isArray(list)?list:[])){
+    const a = coachMapActivity(x); if(!a || have.has(a.externalId)) continue;
+    // al binnen via de Garmin-export (zelfde start, binnen 2 minuten)? dan niet nog eens
+    if(acts.some(y=> y.startTime && a.startTime && Math.abs(Date.parse(y.startTime)-Date.parse(a.startTime)) < 120000)) continue;
+    acts.push(a); have.add(a.externalId); added.push(a);
+  }
+  const linked = added.length ? runAutoLinkAfterImport(added) : 0;
+  c.lastRunsAt = runNow();
+  if(added.length || !quiet) runMsg(added.length ? (added.length+' nieuwe activiteit(en) uit Intervals.icu'+(linked?', '+linked+' gekoppeld aan je training':'')+'.') : 'Geen nieuwe activiteiten in Intervals.icu.');
+  coachRerender();
+  return { added: added.length, linked };
+}
+
 /* ---------- aanroepen (alleen agenda-afspraken met een Atempo-sleutel) ---------- */
 function coachToEvent(e){
   if(!COACH_EXT_RE.test(String(e.externalId||''))) throw new Error('Ongeldige Atempo-sleutel');
@@ -5748,7 +5786,7 @@ async function coachCall(data){
   return { deleted: j && j.eventsDeleted };
 }
 /* bij het opstarten: terugkomst van Intervals.icu afhandelen */
-window.addEventListener('load', ()=>{ coachHandleRedirect().then(back=>{ if(back){ saveState(); const ss = coachSess(), b = ss.back || {}; delete ss.back; coachSessSave(ss); if(typeof showView==='function'){ RUI.tab = b.tab || 'garmin'; if(b.selId) RUI.selId = b.selId; showView(b.view || 'running'); } } }); });
+window.addEventListener('load', ()=>{ coachHandleRedirect().then(back=>{ if(coachConnected()) setTimeout(()=>coachFetchRuns(true), 1500); if(back){ saveState(); const ss = coachSess(), b = ss.back || {}; delete ss.back; coachSessSave(ss); if(typeof showView==='function'){ RUI.tab = b.tab || 'garmin'; if(b.selId) RUI.selId = b.selId; showView(b.view || 'running'); } } }); });
 
 /* Intervals.icu-workouttekst (variant B); Warmup/Cooldown als kopjes zodat Intervals.icu de stapsoort herkent */
 function coachText(s){
@@ -5840,6 +5878,7 @@ function coachAct(act, args){
     case 'coachSeen': { const i = coachInfo(s); if(!i) return; if(args[1]==='gc') i.gcSeen = !i.gcSeen; if(args[1]==='watch') i.watchSeen = !i.watchSeen; return; }
     case 'coachPing': coachPing(); return;
     case 'coachConnect': coachConnect(); return;
+    case 'coachRuns': coachFetchRuns(false); return;
     case 'coachDisconnect': if(confirm('Verbinding met Intervals.icu verbreken? Je kunt later opnieuw verbinden.')) coachDisconnect(); return;
     case 'coachTest': coachSendTest((document.getElementById('coachTestDate')||{}).value); return;
     case 'coachTestDel': if(confirm('De twee testtrainingen uit Intervals.icu verwijderen?')) coachRemoveTest(); return;
@@ -5894,13 +5933,15 @@ function coachSettingsHTML(){
   return `<h3>Garmin via Intervals.icu <span class="sub">Atempo Personal Coach · proef</span></h3>${RUI.msg?`<div class="run-msg ${RUI.msgKind==='err'?'err':''}">${esc(RUI.msg)}</div>`:''}
     <div class="week-track">
       <div class="row"><span class="k">Verbinding met Intervals.icu</span><span class="v ${con?'ok':'na'}">${conTxt}</span></div>
+      <div class="row"><span class="k">Runs opgehaald uit Intervals.icu</span><span class="v">${c.lastRunsAt ? esc(new Date(c.lastRunsAt).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})) : '—'}</span></div>
       <div class="row"><span class="k">Laatste geslaagde synchronisatie</span><span class="v">${c.lastOkAt ? esc(new Date(c.lastOkAt).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})) : '—'}</span></div>
       <div class="row"><span class="k">Komende 7 dagen: klaar om te versturen</span><span class="v">${ready} van ${upcoming.length}</span></div>
       <div class="row"><span class="k">Automatisch synchroniseren</span><span class="v na">uit (pas na een geslaagde proef)</span></div>
       ${c.lastError ? `<div class="warnline">${esc(c.lastError)}</div>` : ''}
+      ${c.needActivityScope ? `<div class="warnline">Atempo mag je activiteiten nog niet lezen. Klik op Verbinding verbreken en daarna op Verbinden met Intervals.icu, en geef ook toestemming voor activiteiten.</div>` : ''}
     </div>
     <p class="tny muted">Atempo gebruikt geen API-sleutel. Je geeft bij Intervals.icu zelf toestemming (alleen voor je trainingsagenda); dat toegangsbewijs blijft alleen in dit tabblad en verdwijnt als je het sluit.</p>
-    <div class="run-actions">${busy ? '<span class="tny muted">Bezig…</span>' : con ? runBtn('coachPing','Verbinding testen','sm')+runBtn('coachDisconnect','Verbinding verbreken','sm') : coachCanConnect() ? runBtn('coachConnect','Verbinden met Intervals.icu','sm primary') : ''}
+    <div class="run-actions">${busy ? '<span class="tny muted">Bezig…</span>' : con ? runBtn('coachRuns','Runs ophalen','sm primary')+runBtn('coachPing','Verbinding testen','sm')+runBtn('coachDisconnect','Verbinding verbreken','sm') : coachCanConnect() ? runBtn('coachConnect','Verbinden met Intervals.icu','sm primary') : ''}
       <span class="tny muted" style="align-self:center">Vorm van de workout:</span>${runBtn('coachVariant|fit','FIT-bestand','sm'+(c.variant==='fit'?' active':''))}${runBtn('coachVariant|text','Intervals.icu-tekst','sm'+(c.variant==='text'?' active':''))}</div>
     <div class="small" style="margin-top:6px">Testtraining (test 2): 5 min opwarmen · 3 min hardlopen · 2 min wandelen · 5 min afkoelen, in beide vormen</div>
     <div class="run-actions"><span class="run-move"><input type="date" id="coachTestDate" value="${esc(c.test ? c.test.date : addDays(today,1))}" aria-label="Datum testtraining"></span>
