@@ -36,7 +36,7 @@
 
   <h2>Koppeling met Intervals.icu</h2>
   <ul>
-    <li>De gebruiker kan Atempo zelf verbinden met het eigen Intervals.icu-account (OAuth met PKCE). Atempo vraagt alleen het recht om de trainingsagenda te beheren (CALENDAR:WRITE) en de eigen activiteiten te lezen (ACTIVITY:READ), zodat een gelopen training aan de geplande training gekoppeld kan worden.</li>
+    <li>De gebruiker kan Atempo zelf verbinden met het eigen Intervals.icu-account (OAuth met PKCE). Atempo vraagt alleen het recht om de trainingsagenda te beheren (CALENDAR:WRITE) en de eigen activiteiten en dagwaarden te lezen (ACTIVITY:READ en WELLNESS:READ), zodat een gelopen training aan de geplande training gekoppeld kan worden en herstelwaarden (zoals HRV, rustpols en slaap) in de grafieken verschijnen.</li>
     <li>Atempo plaatst, wijzigt en verwijdert alleen geplande trainingen die Atempo zelf heeft aangemaakt. Andere agenda-items worden niet aangeraakt.</li>
     <li>Het toegangsbewijs wordt alleen tijdelijk in het geopende browsertabblad bewaard en niet opgeslagen in back-ups, exports of de cloud. De verbinding kan op elk moment worden verbroken, in Atempo of in Intervals.icu.</li>
   </ul>
@@ -49,7 +49,7 @@
 
   <section class="en" lang="en">
     <h2>Summary in English</h2>
-    <p>Atempo is a personal training app (in development) used by a single person, its owner. Training data stays in the owner's browser and in the owner's own secured Firebase storage. The optional Intervals.icu connection uses OAuth with PKCE and requests only the CALENDAR:WRITE and ACTIVITY:READ scopes (to link completed runs to planned workouts); Atempo only creates, updates or deletes planned workouts it created itself (external_id "atempo-…"). The access token is kept only in the open browser tab and is never stored in backups, exports or the cloud. No tracking, no analytics, no data is sold or shared.</p>
+    <p>Atempo is a personal training app (in development) used by a single person, its owner. Training data stays in the owner's browser and in the owner's own secured Firebase storage. The optional Intervals.icu connection uses OAuth with PKCE and requests only the CALENDAR:WRITE, ACTIVITY:READ and WELLNESS:READ scopes (to link completed runs to planned workouts and show recovery values such as HRV, resting heart rate and sleep); Atempo only creates, updates or deletes planned workouts it created itself (external_id "atempo-…"). The access token is kept only in the open browser tab and is never stored in backups, exports or the cloud. No tracking, no analytics, no data is sold or shared.</p>
   </section>
 
   <footer>Atempo · <a href="./">naar de app</a></footer>
