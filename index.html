@@ -484,7 +484,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.8.0";
+const APP_VERSION = "block2-2.8.2";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -879,7 +879,7 @@ const RUN_SCHEMA = 1;
 const RUN_STEP = {
   warmup:   { nl:'Opwarmen',  garmin:'Opwarmen',  color:'#BFDCC9', walking:true  },
   run:      { nl:'Hardlopen', garmin:'Hardlopen', color:'#3D6A92', walking:false },
-  walk:     { nl:'Wandelen',  garmin:'Herstellen', color:'#8FC5A1', walking:true  },
+  walk:     { nl:'Wandelen',  garmin:'Wandelen',  color:'#8FC5A1', walking:true  },   // stapnaam in FIT; de FIT-intensiteit blijft 'recovery'
   cooldown: { nl:'Afkoelen',  garmin:'Afkoelen',  color:'#A7CBEA', walking:true  },
 };
 /* strakke lijnsymbolen (24×24, één lijnkleur): lopend, wandelend, opwarmen (stijgend), afkoelen (dalend) */
@@ -4971,8 +4971,11 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
    HARDLOPEN — deel 2: Garmin FIT Workout-bestand (gestructureerde training)
    Bouwt een FIT-bestand van het type "workout" volgens de Garmin FIT-specificatie (profiel 21.218):
      file_id (mesg 0, type=5 workout) · workout (mesg 26, sport=running) · workout_step (mesg 27, per stap)
+   Elke stap van de training wordt een eigen workout_step (volledig uitgeschreven, géén herhaalstappen), met oplopende
+   message_index, naam, tijdsduur, intensiteit en een optioneel trainingsdoel. De duur is altijd tijd: een doel
+   (hartslag of tempo) is alleen een richtwaarde en bepaalt nooit wanneer de volgende stap begint.
    Een bestand wordt ALLEEN aangeboden als de ingebouwde controle (fitVerify) slaagt:
-   kop-CRC, bestands-CRC, berichtstructuur, aantal stappen, duur per stap en herhaalblokken.
+   kop-CRC, bestands-CRC, berichtstructuur, aantal stappen, namen, duur, intensiteit, doel en totale duur.
    Aanvullend is het encoderontwerp offline getest tegen de officiële Garmin FIT SDK (zie controleverslag).
    =========================================================================== */
 const FIT_PROFILE = 21218;            // 21.218
@@ -5003,27 +5006,29 @@ const FIT_DEF = {
   workoutStep: { num:FIT_MSG.workoutStep, fields:[ [254,2,FIT_TYPE.uint16], [0,FIT_STR,FIT_TYPE.string], [1,1,FIT_TYPE.enum], [2,4,FIT_TYPE.uint32], [3,1,FIT_TYPE.enum], [4,4,FIT_TYPE.uint32], [5,4,FIT_TYPE.uint32], [6,4,FIT_TYPE.uint32], [7,1,FIT_TYPE.enum] ] },
 };
 
-/* training -> lijst FIT-stappen (herhaalblokken waar het patroon regelmatig is) */
+/* trainingsdoel -> FIT-velden (Garmin FIT-profiel, workout_step):
+     geen doel  : target_type=open(2), target_value=0, custom low/high ongeldig (geen willekeurige standaardwaarde)
+     hartslag   : target_type=heart_rate(1), target_value=0 (= eigen bereik), custom low/high = bpm + 100
+     tempo      : target_type=speed(0), target_value=0, custom low/high = snelheid in mm/s (m/s × 1000);
+                  langzaamste tempo = laagste snelheid, dus min/max worden bij het omrekenen omgedraaid
+   Atempo-vorm (dezelfde als het bestaande trainingsdoel): { type:'none' } · { type:'hr', low, high } in bpm ·
+   { type:'pace', low, high } in seconden per km. Volgorde van low/high mag willekeurig zijn; die wordt hier rechtgezet. */
+const FIT_OPEN = { targetType:FIT_TGT.open, targetValue:0, low:FIT_INVALID32, high:FIT_INVALID32 };
+function fitTarget(tg){
+  const a = num(tg && tg.low), b = num(tg && tg.high);
+  if(!tg || !(a>0) || !(b>0)) return { ...FIT_OPEN };
+  if(tg.type==='hr' && Math.max(a,b)<=255) return { targetType:FIT_TGT.heartRate, targetValue:0, low:Math.round(Math.min(a,b))+100, high:Math.round(Math.max(a,b))+100 };
+  if(tg.type==='pace') return { targetType:FIT_TGT.speed, targetValue:0, low:Math.round(1e6/Math.max(a,b)), high:Math.round(1e6/Math.min(a,b)) };
+  return { ...FIT_OPEN };
+}
+/* doel van één stap: een eigen doel van de stap (st.target, ook expliciet 'none') gaat voor; anders geldt het
+   bestaande trainingsdoel van de training alleen voor de hardloopstappen; anders geen doel */
+const fitStepTarget = (s, st) => fitTarget(st.target ? st.target : (st.t==='run' ? s.target : null));
+const FIT_INT_OF = { warmup:FIT_INT.warmup, run:FIT_INT.active, walk:FIT_INT.recovery, cooldown:FIT_INT.cooldown };
+/* training -> FIT-stappen: elke stap apart en in volgorde (geen herhaalstappen; Garmin gaat na de tijd vanzelf door) */
 function fitStepsFromSession(s){
-  const out = [], tgt = s.target || { type:'none' };
-  const runTarget = () => {
-    if(tgt.type==='hr' && num(tgt.low)>0 && num(tgt.high)>0)       // hartslag in bpm: FIT telt er 100 bij op (waarden >100 = absolute bpm)
-      return { targetType:FIT_TGT.heartRate, targetValue:0, low:Math.round(tgt.low)+100, high:Math.round(tgt.high)+100 };
-    if(tgt.type==='pace' && num(tgt.low)>0 && num(tgt.high)>0)     // tempo (s/km) -> snelheid (m/s ×1000); langzaam tempo = lage snelheid
-      return { targetType:FIT_TGT.speed, targetValue:0, low:Math.round(1000/tgt.high*1000), high:Math.round(1000/tgt.low*1000) };
-    return { targetType:FIT_TGT.open, targetValue:0, low:FIT_INVALID32, high:FIT_INVALID32 };
-  };
-  const open = { targetType:FIT_TGT.open, targetValue:0, low:FIT_INVALID32, high:FIT_INVALID32 };
-  const plain = (t, sec) => ({ name:RUN_STEP[t].garmin, durationType:FIT_DUR.time, durationValue:Math.round(sec*1000),
-      ...(t==='run' ? runTarget() : open), intensity: ({ warmup:FIT_INT.warmup, run:FIT_INT.active, walk:FIT_INT.recovery, cooldown:FIT_INT.cooldown })[t] });
-  for(const g of runCompress(s.steps)){
-    if(g.kind==='single'){ out.push(plain(g.t, g.sec)); continue; }
-    const first = out.length;
-    out.push(plain('run', g.items[0].sec), plain('walk', g.items[1].sec));
-    out.push({ name:'Herhalen', durationType:FIT_DUR.repeatUntilStepsCmplt, durationValue:first, targetType:FIT_TGT.open, targetValue:g.count,
-               low:FIT_INVALID32, high:FIT_INVALID32, intensity:0xFF });
-  }
-  return out;
+  return (s.steps||[]).map(st=>({ name:RUN_STEP[st.t].garmin, durationType:FIT_DUR.time, durationValue:Math.round(st.sec*1000),
+    ...fitStepTarget(s, st), intensity:FIT_INT_OF[st.t] }));
 }
 
 function fitWorkoutName(s){
@@ -5100,28 +5105,20 @@ function fitVerify(bytes, s){
       if(!wk[0][8]) err.push('Workout heeft geen naam');
     }
     if(st.length!==exp.length) err.push('Aantal stap-berichten ('+st.length+') klopt niet met verwacht ('+exp.length+')');
+    else if(st.length!==(s.steps||[]).length) err.push('Aantal stappen ('+st.length+') klopt niet met de training ('+(s.steps||[]).length+')');
     else st.forEach((m,i)=>{
       const e = exp[i];
       if(m[254]!==i) err.push('Stap '+i+': message_index klopt niet');
-      if(m[1]!==e.durationType) err.push('Stap '+i+': duur-type klopt niet');
+      if(m[1]===FIT_DUR.repeatUntilStepsCmplt) err.push('Stap '+i+': herhaalstap gevonden (niet toegestaan)');
+      if(m[1]!==FIT_DUR.time) err.push('Stap '+i+': duur-type moet tijd zijn');
       if(m[2]!==e.durationValue>>>0) err.push('Stap '+i+': duur klopt niet');
-      if(e.durationType===FIT_DUR.repeatUntilStepsCmplt){
-        if(!(m[2] < i)) err.push('Stap '+i+': herhaling wijst niet naar een eerdere stap');
-        if(m[4]!==e.targetValue) err.push('Stap '+i+': aantal herhalingen klopt niet');
-      }
+      if(m[0]!==fitAscii(e.name, FIT_STR-1)) err.push('Stap '+i+': naam klopt niet ('+m[0]+')');
       if(m[7]!==e.intensity) err.push('Stap '+i+': intensiteit klopt niet');
+      if(m[3]!==e.targetType || m[4]!==e.targetValue || m[5]!==(e.low>>>0) || m[6]!==(e.high>>>0)) err.push('Stap '+i+': trainingsdoel klopt niet');
     });
-    // totale duur uit het bestand (met herhalingen uitgerekend) moet gelijk zijn aan de duur van de training
+    // totale duur uit het bestand moet gelijk zijn aan de duur van de training
     if(!err.length){
-      let total = 0, i = 0; const dur = x => x[2]/1000;
-      const times = st.map(m=> m[1]===FIT_DUR.time ? dur(m) : 0);
-      for(i=0;i<st.length;i++){
-        if(st[i][1]===FIT_DUR.repeatUntilStepsCmplt){
-          const from = st[i][2]; let blk = 0; for(let k=from;k<i;k++) blk += times[k];
-          total += blk * (st[i][4]-1);        // het blok zelf is al één keer geteld
-        } else total += times[i];
-      }
-      const want = (s.steps||[]).reduce((a,x)=>a+x.sec,0);
+      const total = st.reduce((a,m)=>a+m[2]/1000,0), want = (s.steps||[]).reduce((a,x)=>a+x.sec,0);
       if(Math.abs(total-want)>0.5) err.push('Totale duur in bestand ('+total+' s) verschilt van de training ('+want+' s)');
     }
   }
@@ -5637,8 +5634,9 @@ const COACH_EXT_RE = /^atempo-[A-Za-z0-9_-]{1,64}$/;
 function coachSet(){ const st = RP().settings; st.coach = { variant:'text', lastOkAt:null, lastError:null, athlete:null, test:null, ...(st.coach||{}) }; return st.coach; }
 const coachExtId = s => 'atempo-' + s.id;
 const coachInfo = s => (s && s.ext && s.ext.intervals) || null;
-function coachHash(s){       // vingerafdruk van wat naar Garmin gaat: datum, naam, stappen en doel
-  const str = JSON.stringify([s.date, s.name, (s.steps||[]).map(x=>[x.t,x.sec]), s.target||null]);
+const COACH_FORMAT = 2;      // 2 = elke stap los (geen herhaalblok); een nieuwe vorm stuurt alles één keer opnieuw
+function coachHash(s){       // vingerafdruk van wat naar Garmin gaat: vorm, datum, naam, stappen en doelen
+  const str = JSON.stringify([COACH_FORMAT, s.date, s.name, (s.steps||[]).map(x=>[x.t,x.sec,x.target||null]), s.target||null]);
   let h = 5381; for(let i=0;i<str.length;i++) h = ((h<<5) + h + str.charCodeAt(i)) >>> 0; return h.toString(36);
 }
 /* lokaal · verzonden · gewijzigd na verzenden · fout · verwijderd */
@@ -5791,19 +5789,22 @@ async function coachCall(data){
 /* bij het opstarten: terugkomst van Intervals.icu afhandelen */
 window.addEventListener('load', ()=>{ coachHandleRedirect().then(back=>{ if(coachConnected()) setTimeout(()=>coachFetchRuns(true).finally(()=>coachSyncAll(false)), 1500); if(back){ saveState(); const ss = coachSess(), b = ss.back || {}; delete ss.back; coachSessSave(ss); if(typeof showView==='function'){ RUI.tab = b.tab || 'program'; if(b.openId){ RUI.openId = b.openId; RUI.scrollTo = b.openId; } showView(b.view || 'running'); } } }); });
 
-/* Intervals.icu-workouttekst (variant B); Warmup/Cooldown als kopjes zodat Intervals.icu de stapsoort herkent */
+/* Intervals.icu-workouttekst: elke stap op een eigen regel (geen herhaalblok), net als het FIT-bestand.
+   Warmup/Cooldown als kopjes en de stapsoort per stap (intensity=…), zodat Intervals.icu die niet zelf uit een zone afleidt.
+   Een doel (hartslag of tempo) komt alleen mee als het is ingesteld: per stap, anders het trainingsdoel voor de hardloopstappen. */
 function coachText(s){
   const dur = sec => { const m = Math.floor(sec/60), r = sec%60; return m && r ? m+'m'+r+'s' : m ? m+'m' : r+'s'; };
-  const tg = s.target||{}, runTg = tg.type==='hr' && num(tg.low) ? ' '+tg.low+'-'+tg.high+'bpm HR' : (tg.type==='pace' && num(tg.low) ? ' '+secToPace(tg.low)+'-'+secToPace(tg.high)+'/km Pace' : '');
-  // stapsoort expliciet meegeven: zonder dit leidt Intervals.icu de soort af uit de hartslagzone (alles Z1 → alles dezelfde soort op het horloge)
+  const tgText = tg => { const a = num(tg && tg.low), b = num(tg && tg.high); if(!tg || !(a>0) || !(b>0)) return '';
+    if(tg.type==='hr') return ' '+Math.min(a,b)+'-'+Math.max(a,b)+'bpm HR';
+    if(tg.type==='pace') return ' '+secToPace(Math.min(a,b))+'-'+secToPace(Math.max(a,b))+'/km Pace';
+    return ''; };
   const kind = { warmup:'warmup', run:'active', walk:'recovery', cooldown:'cooldown' };
-  const line = (t, sec) => '- '+RUN_STEP[t].nl+' '+dur(sec)+(t==='run' ? runTg : '')+' intensity='+kind[t];
-  const L = [];
-  runCompress(s.steps).forEach(g=>{
-    if(g.kind==='repeat'){ L.push('', g.count+'x', line('run', g.items[0].sec), line('walk', g.items[1].sec)); }
-    else if(g.t==='warmup') L.push('Warmup', line('warmup', g.sec));
-    else if(g.t==='cooldown') L.push('', 'Cooldown', line('cooldown', g.sec));
-    else L.push('', line(g.t, g.sec));
+  const line = st => '- '+RUN_STEP[st.t].nl+' '+dur(st.sec)+tgText(st.target ? st.target : (st.t==='run' ? s.target : null))+' intensity='+kind[st.t];
+  const L = []; let main = false;
+  (s.steps||[]).forEach(st=>{
+    if(st.t==='warmup'){ L.push('Warmup', line(st)); main = false; }
+    else if(st.t==='cooldown'){ L.push('', 'Cooldown', line(st)); main = false; }
+    else { if(!main){ L.push(''); main = true; } L.push(line(st)); }
   });
   return L.join('\n').trim();
 }
