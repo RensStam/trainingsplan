@@ -484,7 +484,7 @@ body{background:radial-gradient(900px 340px at 0% -8%, #E6F3F7 0%, rgba(230,243,
    Opslag: localStorage (+ optionele Firebase-synchronisatie). Back-up: JSON + HTML. schemaVersion voor migraties.
    =========================================================================== */
 const SCHEMA_VERSION = 6;
-const APP_VERSION = "block2-2.8.2";
+const APP_VERSION = "block2-2.8.3";
 const APP_BUILD = "2026-11-01";   // zichtbaar bovenaan onder de paginatitel — zo zie je meteen of de nieuwste versie geladen is
 const STORAGE_KEY = "trainingsplan-rens-blok2";
 /* Overgangsweek (vaste historische periode): het programma en de registratiemethode waren nog
@@ -513,6 +513,12 @@ const HISTORICAL = deepFreeze((()=>{
 const $ = s => document.querySelector(s);
 /* zet view-HTML neer maar behoud open/dicht-status van <details class="acc">-uitklappers
    (anders klapt elke re-render — bv. na het invullen van een veld — ze weer dicht). */
+/* getallen met een komma: getalvelden worden tekstvelden met een cijfertoetsenbord en tonen een komma;
+   een getypte punt wordt meteen een komma (opslaan accepteert beide, zie coerce en runSet) */
+function numFieldsComma(root){
+  root.querySelectorAll('input[type=number]').forEach(i=>{ const v = i.value; i.type = 'text'; if(!i.getAttribute('inputmode')) i.setAttribute('inputmode','decimal'); i.value = v.replace('.', ','); i.dataset.num = '1'; });
+  root.querySelectorAll('input[inputmode=decimal]:not([data-num])').forEach(i=>{ i.dataset.num = '1'; if(i.value.includes('.')) i.value = i.value.replace('.', ','); });
+}
 function setViewHTML(sel, html){
   const el = $(sel); if(!el) return;
   const prevOpen = [...el.querySelectorAll('details.acc')].map(d=>d.open);
@@ -528,6 +534,7 @@ function setViewHTML(sel, html){
   const pageY = window.scrollY;
   const boxes = [...el.querySelectorAll('.dd-wrap')].map(b=>[b.scrollLeft,b.scrollTop]);
   el.innerHTML = viewTabsHtml(sel) + html;
+  numFieldsComma(el);
   el.querySelectorAll('.dd-wrap').forEach((b,i)=>{ if(boxes[i]){ b.scrollLeft=boxes[i][0]; b.scrollTop=boxes[i][1]; } });
   if(Math.abs(window.scrollY-pageY)>2) window.scrollTo(0,pageY);
   el.querySelectorAll('details.acc').forEach((d,i)=>{ if(prevOpen[i]) d.open = true; });
@@ -544,7 +551,7 @@ const iso = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const parseDate = s => new Date(s+'T12:00:00');
 const todayISO = () => iso(new Date());
 const addDays = (s,n) => { const d = parseDate(s); d.setDate(d.getDate()+n); return iso(d); };
-const num = v => { if(v===''||v==null) return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = v => { if(v===''||v==null) return null; const n = Number(typeof v==='string' ? v.trim().replace(',','.') : v); return Number.isFinite(n) ? n : null; };   // '56,2' en '56.2' zijn allebei 56,2
 const esc = v => String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const fmt = (s,o={weekday:'long',day:'numeric',month:'long'}) => parseDate(s).toLocaleDateString('nl-NL',o);
 const nl = n => (n==null?'—':String(n).replace('.',','));
@@ -2613,7 +2620,7 @@ function routineDetailCard(d){
   const anyPrev = ROUTINE_DETAIL_FIELDS.some(f=> (rd[f]==null||rd[f]==='') && prev[f]);
   const mostRecent = Object.values(prev).filter(Boolean).sort((a,b)=> b.date.localeCompare(a.date))[0];
   const prevNote = prevRoutineValue('note', d);
-  return `<details class="acc"><summary>Ochtendroutine — detail registreren (optioneel)</summary><div class="acc-body">
+  return `<details class="acc" id="routineCard"><summary>Ochtendroutine — detail registreren (optioneel)</summary><div class="acc-body">
     <p class="tny muted">Alleen invullen wat nuttig is. Push-ups, vooroverbuiging en balans L/R voeden de progressiegrafieken. Bewegingsbereik meet je apart in W0/W6 — hetzelfde bereik bij minder herhalingen is een efficiëntieverbetering, geen achteruitgang. Grijze waarden zijn je vorige registratie, ter herinnering — pas als jij ze bevestigt of invult tellen ze mee voor vandaag.</p>
     ${mostRecent ? `<p class="tny muted">Vorige registratie: ${esc(relativeDayLabel(mostRecent.date, d))}${anyPrev?` · <a href="#" data-apply-prev-routine="${d}">Vorige waarden overnemen</a>`:''}</p>` : ''}
     <div class="form-grid">
@@ -4615,7 +4622,10 @@ document.addEventListener('change', e=>{
     const l = ensureLog(ui.date); l.checks = l.checks || {};
     l.routineDone = el.checked ? (l.routineDone==='deels' ? 'deels' : 'ja') : 'nee';
     l.checks.routine = el.checked;   // compat voor oude uitleeslogica
-    saveState(); renderToday(); return;
+    saveState(); renderToday();
+    // vinkje aan = het detail van de ochtendroutine meteen openklappen (scheelt een klik); uit = weer dicht
+    const rc = document.getElementById('routineCard'); if(rc){ rc.open = el.checked; if(el.checked) setTimeout(()=>rc.scrollIntoView({ block:'start', behavior:'smooth' }), 30); }
+    return;
   }
   if(el.hasAttribute('data-routine-deels')){
     const l = ensureLog(ui.date);
@@ -4657,6 +4667,7 @@ document.addEventListener('focusout', e=>{
 
 document.addEventListener('input', e=>{
   const el = e.target;
+  if(el.dataset && el.dataset.num && el.value.includes('.')){ const p = el.selectionStart; el.value = el.value.replace(/\./g, ','); try { el.setSelectionRange(p, p); } catch(err){} }
   if(!el.dataset.bind) return;
   if(el.tagName==='TEXTAREA' || (el.tagName==='INPUT' && (el.type==='number'||el.type==='text'||el.type==='date'))){
     // schrijf stil weg tijdens typen; volledige herrender pas bij 'change' (blur) — voorkomt focusverlies
